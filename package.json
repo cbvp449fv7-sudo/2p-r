@@ -1,0 +1,14 @@
+{
+  "name": "areej-shawly",
+  "version": "1.0.0",
+  "private": true,
+  "description": "موقع أريج شاولي للخياطة — أطقم الصلاة والتوربان وطرح الحجاب",
+  "scripts": {
+    "build": "tailwindcss -i assets/css/tailwind.css -o assets/css/site.css --minify",
+    "watch": "tailwindcss -i assets/css/tailwind.css -o assets/css/site.css --watch",
+    "serve": "python3 -m http.server 8080"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}
