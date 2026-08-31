@@ -1,3 +1,7 @@
 node_modules/
 .DS_Store
 *.log
+
+# Design tooling installed on demand, not part of the site.
+# Reinstall with: npx ui-ux-pro-max-cli init --ai claude
+.claude/skills/

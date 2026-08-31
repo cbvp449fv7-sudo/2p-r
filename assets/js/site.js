@@ -5,6 +5,7 @@
   var B = window.BRAND || {};
   var PRODUCTS = window.PRODUCTS || [];
   var IMG = 'assets/images/products/';
+  var SIZES = '(min-width:1024px) 360px, (min-width:640px) 45vw, 90vw';
 
   /* ── روابط واتساب ─────────────────────────────────────────────── */
   function waLink(msg) {
@@ -31,13 +32,17 @@
     }).join('');
 
     return '<article class="card group flex flex-col">'
-      +   '<button type="button" class="js-zoom relative block aspect-[4/5] overflow-hidden bg-ivory-deep"'
+      +   '<button type="button" class="js-zoom tap relative block aspect-[4/5] overflow-hidden bg-ivory-deep"'
       +           ' data-code="' + p.code + '" aria-label="تكبير صورة ' + p.name + '">'
-      +     '<img src="' + IMG + p.img + '-sm.jpg"'
-      +         ' srcset="' + IMG + p.img + '-sm.jpg 500w, ' + IMG + p.img + '.jpg 1000w"'
-      +         ' sizes="(min-width:1024px) 360px, (min-width:640px) 45vw, 90vw"'
-      +         ' alt="' + p.name + '" loading="lazy" decoding="async" width="500" height="625"'
-      +         ' class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]">'
+      +     '<picture>'
+      +       '<source type="image/webp" sizes="' + SIZES + '"'
+      +              ' srcset="' + IMG + p.img + '-sm.webp 500w, ' + IMG + p.img + '.webp 1000w">'
+      +       '<img src="' + IMG + p.img + '-sm.jpg"'
+      +           ' srcset="' + IMG + p.img + '-sm.jpg 500w, ' + IMG + p.img + '.jpg 1000w"'
+      +           ' sizes="' + SIZES + '"'
+      +           ' alt="' + p.name + '" loading="lazy" decoding="async" width="500" height="625"'
+      +           ' class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]">'
+      +     '</picture>'
       +     badge
       +   '</button>'
       +   '<div class="flex flex-1 flex-col p-5">'
@@ -110,6 +115,7 @@
   var lb = document.getElementById('lightbox');
   if (lb) {
     var lbImg = lb.querySelector('img');
+    var lbSrc = lb.querySelector('source');
     var lbCap = lb.querySelector('[data-cap]');
     var lbCta = lb.querySelector('a');
     var opener = null;
@@ -120,6 +126,7 @@
         var p = PRODUCTS.find(function (x) { return x.code === btn.dataset.code; });
         if (!p) return;
         opener = btn;
+        lbSrc.srcset = IMG + p.img + '.webp';
         lbImg.src = IMG + p.img + '.jpg';
         lbImg.alt = p.name;
         lbCap.textContent = p.name + ' — ' + p.code;
@@ -141,7 +148,15 @@
       if (opener) { opener.focus(); opener = null; }
     }
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !lb.classList.contains('hidden')) close();
+      if (lb.classList.contains('hidden')) return;
+      if (e.key === 'Escape') { close(); return; }
+      if (e.key !== 'Tab') return;
+      // focus trap: Tab must cycle within the dialog, never behind it
+      var f = lb.querySelectorAll('button, a[href]');
+      if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     });
   }
 
@@ -174,6 +189,16 @@
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var d = new FormData(form);
+      var note = document.getElementById('form-note');
+      var filled = ['design','length','chest','sleeve','head','color','notes']
+        .some(function (k) { return String(d.get(k) || '').trim(); });
+      if (!filled) {
+        note.textContent = 'اكتبي مقاسًا واحدًا على الأقل، أو اختاري التصميم، قبل إرسال الرسالة.';
+        note.classList.remove('hidden');
+        form.querySelector('[name=design]').focus();
+        return;
+      }
+      note.classList.add('hidden');
       var rows = [
         ['التصميم',        d.get('design')],
         ['الطول الكلي',    d.get('length')],

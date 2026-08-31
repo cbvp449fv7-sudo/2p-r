@@ -5,11 +5,14 @@ module.exports = {
     extend: {
       colors: {
         ivory:  { DEFAULT: '#FAF7F3', deep: '#F2ECE4' },
-        ink:    { DEFAULT: '#2E2A28', soft: '#5C5451', mute: '#8A807B' },
-        plum:   { DEFAULT: '#6B4B5E', dark: '#523A48', light: '#8E6B7E' },
+        ink:    { DEFAULT: '#2E2A28', soft: '#5C5451', mute: '#736A65' },
+        plum:   { DEFAULT: '#6B4B5E', dark: '#523A48', light: '#7E5C6E' },
         rose:   { DEFAULT: '#C9A399', light: '#E8D7D0' },
         sage:   { DEFAULT: '#8FA396' },
-        gold:   { DEFAULT: '#B08D57' }
+        gold:   { DEFAULT: '#B08D57' },
+        /* WhatsApp brand green fails 4.5:1 with white text (1.98:1);
+           this deeper green keeps the signal and passes AA at 5.42:1 */
+        whats:  { DEFAULT: '#0F7A3D', dark: '#0B6231' }
       },
       fontFamily: {
         display: ['Amiri', 'Georgia', 'serif'],

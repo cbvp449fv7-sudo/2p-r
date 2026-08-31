@@ -18,14 +18,17 @@
   .wrap { @apply mx-auto w-full max-w-content px-5 sm:px-8; }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-full px-6 py-3
            text-[15px] font-medium transition-all duration-200 select-none;
+    touch-action: manipulation;      /* removes the 300ms tap delay */
+    min-height: 44px;                /* Apple HIG / Material minimum touch target */
   }
-  .btn-wa   { @apply btn bg-[#25D366] text-white shadow-card hover:bg-[#1FB855] hover:shadow-lift active:scale-[.98]; }
+  .btn-wa   { @apply btn bg-whats text-white shadow-card hover:bg-whats-dark hover:shadow-lift active:scale-[.98]; }
   .btn-plum { @apply btn bg-plum text-ivory shadow-card hover:bg-plum-dark hover:shadow-lift active:scale-[.98]; }
   .btn-ghost{ @apply btn border border-ink/15 text-ink hover:border-plum hover:text-plum; }
 
   .section { @apply py-16 sm:py-24; }
+  .tap { cursor: pointer; touch-action: manipulation; }
   .eyebrow { @apply text-xs font-medium tracking-[.2em] text-plum-light uppercase; }
   .lede    { @apply text-ink-soft leading-[2] text-[17px]; }
 
@@ -33,14 +36,19 @@
     @apply overflow-hidden rounded-2xl bg-white shadow-card transition-shadow duration-300 hover:shadow-lift;
   }
   .chip {
-    @apply rounded-full border border-ink/12 px-4 py-2 text-sm text-ink-soft
+    @apply cursor-pointer rounded-full border border-ink/12 px-4 text-sm text-ink-soft
            transition-colors hover:border-plum hover:text-plum;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    touch-action: manipulation;
   }
   .chip-on { @apply border-plum bg-plum text-ivory hover:text-ivory; }
 
   .field {
     @apply w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-[15px]
-           placeholder:text-ink-mute/70 focus:border-plum focus:outline-none focus:ring-2 focus:ring-plum/20;
+           placeholder:text-ink-mute focus:border-plum focus:outline-none focus:ring-2 focus:ring-plum/20;
   }
   .label { @apply mb-1.5 block text-sm font-medium text-ink-soft; }
 }
