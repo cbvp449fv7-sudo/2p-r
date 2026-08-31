@@ -1,0 +1,41 @@
+<footer class="bg-card/70">
+  <div class="flex h-1.5" aria-hidden="true">
+    <span class="flex-1 bg-blush-deep"></span><span class="flex-1 bg-lilac-deep"></span><span class="flex-1 bg-mint-deep"></span><span class="flex-1 bg-sand-deep"></span><span class="flex-1 bg-sky-deep"></span>
+  </div>
+  <div class="wrap grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="sm:col-span-2">
+      <div class="flex items-center gap-3">
+        <picture>
+          <source type="image/webp" srcset="{{PREFIX}}assets/images/brand/logo.webp">
+          <img src="{{PREFIX}}assets/images/brand/logo.png" alt="" width="48" height="48" class="h-12 w-12 rounded-full">
+        </picture>
+        <span class="font-display text-lg font-bold">{{BRAND}}</span>
+      </div>
+      <p class="mt-4 max-w-sm text-sm leading-7 text-ink-soft">أطقم صلاة وتوربان وطرح حجاب من البوال والقطن، مخيطة يدويًا وبمقاسات حسب الطلب.</p>
+    </div>
+    <div>
+      <h2 class="font-sans text-sm font-bold tracking-wide">الموقع</h2>
+      <ul class="mt-3 text-sm text-ink-soft">
+        <li><a class="tap block py-3 hover:text-plum" href="{{PREFIX}}index.html">الرئيسية</a></li>
+        <li><a class="tap block py-3 hover:text-plum" href="{{PREFIX}}products.html">التصاميم</a></li>
+        <li><a class="tap block py-3 hover:text-plum" href="{{PREFIX}}sizes.html">المقاسات</a></li>
+        <li><a class="tap block py-3 hover:text-plum" href="{{PREFIX}}index.html#about">عن أريج</a></li>
+      </ul>
+    </div>
+    <div>
+      <h2 class="font-sans text-sm font-bold tracking-wide">تواصلي</h2>
+      <ul class="mt-3 text-sm text-ink-soft">
+        <li><a class="tap block py-3 hover:text-plum" href="{{WA_GENERAL}}" target="_blank" rel="noopener">واتساب <span class="num" dir="ltr">+966 54 122 6711</span></a></li>
+        <li><a class="tap block py-3 hover:text-plum" href="{{IG}}" target="_blank" rel="noopener">إنستقرام <span dir="ltr" class="num">@areejshawly</span></a></li>
+        {{{YOUTUBE_BLOCK}}}
+        <li><a class="tap block py-3 hover:text-plum" href="{{MAROOF}}" target="_blank" rel="noopener">التوثيق في «معروف»</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="border-t border-ink/8">
+    <div class="wrap flex flex-col items-center justify-between gap-2 py-5 text-xs text-ink-mute sm:flex-row">
+      <p>© <span class="num">{{YEAR}}</span> {{BRAND}}</p>
+      <p>موثّقة في «معروف» — <span class="num">{{MAROOF_ID}}</span></p>
+    </div>
+  </div>
+</footer>

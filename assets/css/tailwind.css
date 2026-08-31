@@ -12,6 +12,9 @@
   /* Arabic numerals stay Latin for prices/phone so they read correctly everywhere */
   .num { font-feature-settings: "lnum"; direction: ltr; unicode-bidi: embed; }
   :focus-visible { @apply outline-none ring-2 ring-plum ring-offset-2 ring-offset-page; }
+  /* Tailwind's .flex/.grid beat the preflight [hidden] rule, so filtered cards
+     would stay visible. Make the attribute authoritative. */
+  [hidden] { display: none !important; }
 }
 
 @layer components {
@@ -57,4 +60,84 @@
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* ═══ لغة بصرية مستوحاة من الخياطة ═══════════════════════════════════════ */
+@layer components {
+
+  /* غرزة جري — فاصل يشبه خيط الخياطة، يُستخدم بين الأقسام */
+  .stitch {
+    height: 2px;
+    background-image: linear-gradient(to left,
+      theme('colors.plum.DEFAULT') 0 14px, transparent 14px 24px);
+    background-size: 24px 2px;
+    opacity: .35;
+  }
+  .stitch-soft { @apply stitch; opacity: .18; }
+
+  /* حافة مخيطة حول البطاقات المهمة */
+  .seamed {
+    position: relative;
+  }
+  .seamed::after {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 1px dashed theme('colors.plum.DEFAULT');
+    opacity: .22;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* علامة منسوجة — تحاكي لِيبل القماش المخيط على الكم */
+  .woven {
+    @apply inline-flex items-center gap-2 rounded-[3px] bg-plum px-3 py-1
+           font-display text-[13px] tracking-wide text-ivory;
+    box-shadow: 0 1px 0 rgba(0,0,0,.12);
+  }
+  .woven::before, .woven::after {
+    content: '';
+    width: 3px; height: 60%;
+    background: repeating-linear-gradient(to bottom,
+      theme('colors.ivory.DEFAULT') 0 2px, transparent 2px 4px);
+    opacity: .5;
+  }
+
+  /* علامات شريط القياس — شريط تحت عناوين الأقسام */
+  .ticks {
+    height: 10px;
+    background-image: linear-gradient(to left,
+      theme('colors.ink.DEFAULT') 0 1px, transparent 1px 8px);
+    background-size: 8px 10px;
+    opacity: .3;
+  }
+
+  /* شارات الحالة */
+  .pill { @apply rounded-full px-2.5 py-1 text-[11px] font-medium; }
+  .pill-ok   { @apply bg-card/90 text-ink-soft; }
+  .pill-off  { @apply bg-ink/85 text-ivory; }
+  .pill-soon { @apply bg-plum/90 text-ivory; }
+
+  /* رابط التنقّل مع علامة الصفحة الحالية */
+  .navlink { @apply relative transition-colors hover:text-plum; }
+  .navlink.is-current { @apply text-plum; }
+  .navlink.is-current::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 2px;
+    background-image: linear-gradient(to left,
+      theme('colors.plum.DEFAULT') 0 5px, transparent 5px 9px);
+    background-size: 9px 2px;
+  }
+
+  /* خطأ حقل في النموذج */
+  /* الزر العائم ينكمش إلى أيقونة عند النزول */
+  #float-wa.is-compact { transform: translateY(0) scale(.86); opacity: .92; }
+  #float-wa.is-compact span, #float-wa.is-compact { font-size: 0; gap: 0; padding: .8rem; }
+  #float-wa.is-compact svg { width: 24px; height: 24px; }
+
+  .field-error { @apply border-danger bg-danger/5; }
+  .err-msg { @apply mt-1.5 flex items-start gap-1.5 text-sm text-danger; }
 }

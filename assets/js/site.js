@@ -1,169 +1,143 @@
-/* أريج شاولي للخياطة — سكربت الموقع (بدون أي مكتبات خارجية) */
+/* أريج شاولي للخياطة — سكربت الموقع. بدون مكتبات خارجية.
+   البطاقات مبنية مسبقًا في HTML، فدور هذا الملف هو التفاعل فقط:
+   التصفية، القائمة، تكبير الصور، والتحقّق من نموذج المقاسات. */
 (function () {
   'use strict';
 
-  var B = window.BRAND || {};
+  var B = window.BUSINESS || {};
   var PRODUCTS = window.PRODUCTS || [];
-  var IMG = 'assets/images/products/';
-  var SIZES = '(min-width:1024px) 360px, (min-width:640px) 45vw, 90vw';
+  var REQUIRED = window.MEASUREMENTS_BY_CAT || {};
+  var IMG = (document.body.dataset.prefix || '') + 'assets/images/products/';
 
-  /* ── روابط واتساب ─────────────────────────────────────────────── */
   function waLink(msg) {
     return 'https://wa.me/' + B.whatsapp + '?text=' + encodeURIComponent(msg);
   }
-  function productMsg(p) {
-    return 'السلام عليكم 🌸\nأرغب بالاستفسار عن هذا التصميم:\n\n'
-         + '• التصميم: ' + p.name + '\n'
-         + '• الرمز: ' + p.code + '\n\n'
-         + 'وأرغب بمعرفة السعر والمقاسات المتاحة.';
-  }
+  function on(el, ev, fn) { if (el) el.addEventListener(ev, fn); }
 
-  /* ── بطاقة منتج ───────────────────────────────────────────────── */
-  function card(p) {
-    var price = p.price ? '<span class="num font-medium text-plum">' + p.price + ' ر.س</span>'
-                        : '<span class="text-ink-mute">السعر عبر الواتساب</span>';
-    var badge = p.sold
-      ? '<span class="absolute top-3 end-3 rounded-full bg-ink/80 px-3 py-1 text-xs text-ivory">غير متوفر حاليًا</span>'
-      : '';
-    var fabric = p.fabric
-      ? '<p class="mt-1 text-sm text-ink-mute">القماش: ' + p.fabric + '</p>' : '';
-    var swatches = (p.colors || []).length
-      ? '<div class="mt-3 flex items-center gap-2">'
-        + '<span class="sr-only">ألوان القطعة: ' + p.colors.map(function (c) { return c.name; }).join('، ') + '</span>'
-        + p.colors.map(function (c) {
-            return '<span class="h-5 w-5 rounded-full ring-1 ring-ink/15" title="' + c.name
-                 + '" style="background:' + c.hex + '"></span>';
-          }).join('')
-        + '<span class="text-xs text-ink-mute">' + p.colors.map(function (c) { return c.name; }).join(' · ') + '</span>'
-        + '</div>'
-      : '';
-
-    var chips = (p.details || []).map(function (d) {
-      return '<li class="rounded-full bg-ivory-deep px-3 py-1 text-xs text-ink-soft">' + d + '</li>';
-    }).join('');
-
-    return '<article class="card group flex flex-col">'
-      +   '<button type="button" class="js-zoom tap relative block aspect-[4/5] overflow-hidden bg-ivory-deep"'
-      +           ' data-code="' + p.code + '" aria-label="تكبير صورة ' + p.name + '">'
-      +     '<picture>'
-      +       '<source type="image/webp" sizes="' + SIZES + '"'
-      +              ' srcset="' + IMG + p.img + '-sm.webp 500w, ' + IMG + p.img + '.webp 1000w">'
-      +       '<img src="' + IMG + p.img + '-sm.jpg"'
-      +           ' srcset="' + IMG + p.img + '-sm.jpg 500w, ' + IMG + p.img + '.jpg 1000w"'
-      +           ' sizes="' + SIZES + '"'
-      +           ' alt="' + p.name + '" loading="lazy" decoding="async" width="500" height="625"'
-      +           ' class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]">'
-      +     '</picture>'
-      +     badge
-      +   '</button>'
-      +   '<div class="flex flex-1 flex-col p-5">'
-      +     '<div class="flex items-baseline justify-between gap-3">'
-      +       '<h3 class="text-lg">' + p.name + '</h3>'
-      +       '<span class="num shrink-0 text-xs text-ink-mute">' + p.code + '</span>'
-      +     '</div>'
-      +     '<p class="mt-2 text-sm leading-7 text-ink-soft">' + p.desc + '</p>'
-      +     fabric
-      +     swatches
-      +     '<ul class="mt-3 flex flex-wrap gap-1.5">' + chips + '</ul>'
-      +     '<div class="mt-5 flex items-center justify-between gap-3 border-t border-ink/8 pt-4">'
-      +       '<span class="text-sm">' + price + '</span>'
-      +       '<a class="btn-wa !px-5 !py-2.5 !text-sm" href="' + waLink(productMsg(p)) + '"'
-      +          ' target="_blank" rel="noopener">اطلبي هذا التصميم</a>'
-      +     '</div>'
-      +   '</div>'
-      + '</article>';
-  }
-
-  function render(el, list) {
-    if (!el) return;
-    if (!list.length) {
-      el.innerHTML = '<p class="col-span-full rounded-2xl border border-dashed border-ink/15 '
-        + 'p-10 text-center text-ink-mute">تصاميم هذا القسم قيد التصوير — تواصلي معنا عبر '
-        + '<a class="text-plum underline" href="' + waLink('السلام عليكم، أود الاستفسار عن التصاميم المتوفرة.')
-        + '" target="_blank" rel="noopener">الواتساب</a> لرؤية المتوفر.</p>';
-      return;
-    }
-    el.innerHTML = list.map(card).join('');
-  }
-
-  /* ── الشبكات ──────────────────────────────────────────────────── */
-  var featured = document.getElementById('featured-grid');
-  if (featured) render(featured, PRODUCTS.slice(0, 3));
-
+  /* ── تنبيه للمالكة: تصميم في البيانات لكنه غير مبني في الصفحة ─────────── */
   var grid = document.getElementById('product-grid');
-  if (grid) {
-    var filters = document.getElementById('filters');
-    var current = 'all';
-    var apply = function () {
-      render(grid, current === 'all'
-        ? PRODUCTS
-        : PRODUCTS.filter(function (p) { return p.cat === current; }));
-    };
-    if (filters) {
-      filters.innerHTML = (window.CATEGORIES || []).map(function (c) {
-        var count = c.id === 'all'
-          ? PRODUCTS.length
-          : PRODUCTS.filter(function (p) { return p.cat === c.id; }).length;
-        return '<button type="button" class="chip' + (c.id === 'all' ? ' chip-on' : '') + '"'
-          + ' data-cat="' + c.id + '" aria-pressed="' + (c.id === 'all') + '">'
-          + c.label + ' <span class="num text-xs opacity-60">' + count + '</span></button>';
-      }).join('');
-      filters.addEventListener('click', function (e) {
-        var btn = e.target.closest('[data-cat]');
-        if (!btn) return;
-        current = btn.dataset.cat;
-        filters.querySelectorAll('[data-cat]').forEach(function (b) {
-          var on = b === btn;
-          b.classList.toggle('chip-on', on);
-          b.setAttribute('aria-pressed', on);
-        });
-        apply();
-      });
+  if (grid && PRODUCTS.length) {
+    var inDom = new Set(Array.prototype.map.call(grid.querySelectorAll('[data-code]'), function (n) {
+      return n.dataset.code;
+    }));
+    var missing = PRODUCTS.filter(function (p) { return !inDom.has(p.code); }).map(function (p) { return p.code; });
+    if (missing.length) {
+      console.warn('[أريج شاولي] هذه التصاميم موجودة في data/products.js لكنها غير مبنية في الصفحة: '
+        + missing.join('، ') + '\nشغّلي الأمر:  npm run build');
+      if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+        var warn = document.createElement('p');
+        warn.className = 'mb-6 rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger';
+        warn.textContent = 'تصاميم جديدة في الملف لم تُبنَ بعد (' + missing.join('، ')
+          + '). شغّلي: npm run build';
+        grid.parentNode.insertBefore(warn, grid);
+      }
     }
-    apply();
   }
 
-  /* ── تكبير الصورة ─────────────────────────────────────────────── */
+  /* ── التصفية: تُحفظ في الرابط ويُعلَن عنها لقارئات الشاشة ─────────────── */
+  var filters = document.getElementById('filters');
+  if (filters && grid) {
+    var status = document.getElementById('filter-status');
+    var empty = document.getElementById('no-results');
+    var cards = Array.prototype.slice.call(grid.querySelectorAll('[data-cat]'));
+
+    function labelOf(cat) {
+      var btn = filters.querySelector('[data-cat="' + cat + '"]');
+      return btn ? btn.textContent.replace(/\s*\d+\s*$/, '').trim() : cat;
+    }
+
+    function apply(cat, push) {
+      var shown = 0;
+      cards.forEach(function (c) {
+        var match = cat === 'all' || c.dataset.cat === cat;
+        c.hidden = !match;
+        if (match) shown++;
+      });
+      filters.querySelectorAll('[data-cat]').forEach(function (b) {
+        var isOn = b.dataset.cat === cat;
+        b.classList.toggle('chip-on', isOn);
+        b.setAttribute('aria-pressed', String(isOn));
+      });
+      if (empty) empty.hidden = shown !== 0;
+      if (status) status.textContent = shown
+        ? 'عُرض ' + shown + ' من التصاميم في قسم ' + labelOf(cat)
+        : 'لا توجد تصاميم في قسم ' + labelOf(cat);
+
+      var url = new URL(location.href);
+      if (cat === 'all') url.searchParams.delete('cat'); else url.searchParams.set('cat', cat);
+      if (push) history.replaceState({}, '', url);
+    }
+
+    on(filters, 'click', function (e) {
+      var btn = e.target.closest('[data-cat]');
+      if (btn) apply(btn.dataset.cat, true);
+    });
+
+    var start = new URLSearchParams(location.search).get('cat');
+    apply(start && filters.querySelector('[data-cat="' + CSS.escape(start) + '"]') ? start : 'all', false);
+  }
+
+  /* ── قائمة الجوال: Escape، والضغط خارجها، وإعادة التركيز ──────────────── */
+  var burger = document.getElementById('burger');
+  var mobnav = document.getElementById('mobnav');
+  if (burger && mobnav) {
+    function setMenu(open) {
+      mobnav.hidden = !open;
+      mobnav.classList.toggle('hidden', !open);
+      burger.setAttribute('aria-expanded', String(open));
+      burger.setAttribute('aria-label', open ? 'إغلاق القائمة' : 'فتح القائمة');
+      if (open) { var first = mobnav.querySelector('a'); if (first) first.focus(); }
+    }
+    var isOpen = function () { return burger.getAttribute('aria-expanded') === 'true'; };
+
+    on(burger, 'click', function () { setMenu(!isOpen()); });
+    on(mobnav, 'click', function (e) { if (e.target.tagName === 'A') setMenu(false); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && isOpen()) { setMenu(false); burger.focus(); }
+    });
+    document.addEventListener('click', function (e) {
+      if (isOpen() && !mobnav.contains(e.target) && !burger.contains(e.target)) setMenu(false);
+    });
+  }
+
+  /* ── تكبير الصورة ─────────────────────────────────────────────────────── */
   var lb = document.getElementById('lightbox');
   if (lb) {
     var lbImg = lb.querySelector('img');
     var lbSrc = lb.querySelector('source');
-    var lbCap = lb.querySelector('[data-cap]');
-    var lbCta = lb.querySelector('a');
+    var lbTitle = document.getElementById('lightbox-title');
     var opener = null;
 
-    document.addEventListener('click', function (e) {
-      var btn = e.target.closest('.js-zoom');
-      if (btn) {
-        var p = PRODUCTS.find(function (x) { return x.code === btn.dataset.code; });
-        if (!p) return;
-        opener = btn;
-        lbSrc.srcset = IMG + p.img + '.webp';
-        lbImg.src = IMG + p.img + '.jpg';
-        lbImg.alt = p.name;
-        lbCap.textContent = p.name + ' — ' + p.code;
-        lbCta.href = waLink(productMsg(p));
-        lb.classList.remove('hidden');
-        lb.classList.add('flex');
-        document.body.style.overflow = 'hidden';
-        lb.querySelector('[data-close]').focus();
-        return;
-      }
-      if (e.target.closest('[data-close]') || e.target === lb) close();
-    });
-
-    function close() {
+    function openLb(btn) {
+      opener = btn;
+      var file = btn.dataset.file, alt = btn.dataset.alt || '';
+      lbSrc.srcset = IMG + file + '.webp';
+      lbImg.src = IMG + file + '.jpg';
+      lbImg.alt = alt;
+      lbTitle.textContent = alt;
+      lb.classList.remove('hidden');
+      lb.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+      lb.querySelector('[data-close]').focus();
+    }
+    function closeLb() {
       lb.classList.add('hidden');
       lb.classList.remove('flex');
       lbImg.removeAttribute('src');
+      lbSrc.removeAttribute('srcset');
       document.body.style.overflow = '';
       if (opener) { opener.focus(); opener = null; }
     }
+
+    document.addEventListener('click', function (e) {
+      var z = e.target.closest('.js-zoom');
+      if (z && z.dataset.file) { e.preventDefault(); openLb(z); return; }
+      if (e.target.closest('[data-close]') || e.target === lb) closeLb();
+    });
     document.addEventListener('keydown', function (e) {
       if (lb.classList.contains('hidden')) return;
-      if (e.key === 'Escape') { close(); return; }
+      if (e.key === 'Escape') { closeLb(); return; }
       if (e.key !== 'Tab') return;
-      // focus trap: Tab must cycle within the dialog, never behind it
       var f = lb.querySelectorAll('button, a[href]');
       if (!f.length) return;
       var first = f[0], last = f[f.length - 1];
@@ -172,74 +146,147 @@
     });
   }
 
-  /* ── قائمة الجوال ─────────────────────────────────────────────── */
-  var burger = document.getElementById('burger');
-  var mobnav = document.getElementById('mobnav');
-  if (burger && mobnav) {
-    burger.addEventListener('click', function () {
-      var open = mobnav.classList.toggle('hidden');
-      burger.setAttribute('aria-expanded', String(!open));
-    });
-    mobnav.addEventListener('click', function (e) {
-      if (e.target.tagName === 'A') {
-        mobnav.classList.add('hidden');
-        burger.setAttribute('aria-expanded', 'false');
-      }
-    });
+  /* ── زر الواتساب العائم: ينكمش عند النزول حتى لا يغطّي الصور ──────────── */
+  var floatWa = document.getElementById('float-wa');
+  if (floatWa && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    var lastY = 0;
+    addEventListener('scroll', function () {
+      var y = scrollY;
+      floatWa.classList.toggle('is-compact', y > 400 && y > lastY);
+      lastY = y;
+    }, { passive: true });
   }
 
-  /* ── نموذج المقاسات: يبني رسالة واتساب جاهزة ──────────────────── */
+  /* ── نموذج المقاسات ───────────────────────────────────────────────────── */
   var form = document.getElementById('order-form');
-  if (form) {
-    var sel = form.querySelector('[name=design]');
-    if (sel) {
-      sel.innerHTML = '<option value="">— لم أحدّد بعد —</option>'
-        + PRODUCTS.map(function (p) {
-            return '<option value="' + p.name + ' (' + p.code + ')">' + p.name + ' (' + p.code + ')</option>';
-          }).join('');
-    }
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var d = new FormData(form);
-      var note = document.getElementById('form-note');
-      var filled = ['design','length','chest','sleeve','head','color','notes']
-        .some(function (k) { return String(d.get(k) || '').trim(); });
-      if (!filled) {
-        note.textContent = 'اكتبي مقاسًا واحدًا على الأقل، أو اختاري التصميم، قبل إرسال الرسالة.';
-        note.classList.remove('hidden');
-        form.querySelector('[name=design]').focus();
-        return;
-      }
-      note.classList.add('hidden');
-      var rows = [
-        ['التصميم',        d.get('design')],
-        ['الطول الكلي',    d.get('length')],
-        ['محيط الصدر',     d.get('chest')],
-        ['طول الكم',       d.get('sleeve')],
-        ['محيط الرأس',     d.get('head')],
-        ['اللون المفضّل',  d.get('color')],
-        ['ملاحظات',        d.get('notes')]
-      ].filter(function (r) { return r[1] && String(r[1]).trim(); });
+  if (!form) return;
 
-      var msg = 'السلام عليكم 🌸\nأرغب بطلب تفصيل على مقاسي:\n\n'
-              + rows.map(function (r) { return '• ' + r[0] + ': ' + String(r[1]).trim(); }).join('\n')
-              + '\n\nجزاك الله خير 🤍';
-      window.open(waLink(msg), '_blank', 'noopener');
-    });
+  /* NOTE: looking a field up as elements['length'] returns the collection's
+     item count, not the input named "length". Always look up by name attribute. */
+  function fld(name) { return form.querySelector('[name="' + name + '"]'); }
+
+  var LABELS = {
+    chest:  'محيط الصدر',
+    head:   'محيط الرأس',
+    length: 'الطول الكلي للقطعة',
+    sleeve: 'طول الكم'
+  };
+  var BODY_FIELDS = ['chest', 'head'];
+  var GARMENT_FIELDS = ['length', 'sleeve'];
+  var NUMERIC = BODY_FIELDS.concat(GARMENT_FIELDS);
+
+  function fieldError(name, msg) {
+    var input = fld(name);
+    var box = document.getElementById('err-' + name);
+    if (!input || !box) return;
+    if (msg) {
+      box.textContent = msg;
+      box.hidden = false;
+      box.classList.remove('hidden');
+      input.classList.add('field-error');
+      input.setAttribute('aria-invalid', 'true');
+    } else {
+      box.textContent = '';
+      box.hidden = true;
+      box.classList.add('hidden');
+      input.classList.remove('field-error');
+      input.removeAttribute('aria-invalid');
+    }
   }
 
-  /* ── تعبئة روابط التواصل من ملف البيانات ──────────────────────── */
-  document.querySelectorAll('[data-wa]').forEach(function (a) {
-    a.href = waLink(a.dataset.wa || 'السلام عليكم، أود الاستفسار عن أطقم الصلاة.');
-  });
-  document.querySelectorAll('[data-ig]').forEach(function (a) {
-    a.href = 'https://instagram.com/' + B.instagram;
-  });
-  document.querySelectorAll('[data-maroof]').forEach(function (a) { a.href = B.maroof; });
-  document.querySelectorAll('[data-yt]').forEach(function (a) {
-    if (B.youtube) a.href = B.youtube; else a.remove();
+  function validateField(name) {
+    var input = fld(name);
+    var raw = String(input.value || '').trim();
+    if (!raw) { fieldError(name, ''); return true; }
+    var n = Number(raw);
+    var min = Number(input.min), max = Number(input.max);
+    if (!Number.isFinite(n) || !Number.isInteger(n)) {
+      fieldError(name, 'اكتبي رقمًا صحيحًا بالسنتيمتر.'); return false;
+    }
+    if (n < min || n > max) {
+      fieldError(name, 'الرقم خارج النطاق المتوقّع (' + min + '–' + max + ' سم). تأكّدي من القياس.');
+      return false;
+    }
+    fieldError(name, ''); return true;
+  }
+
+  NUMERIC.forEach(function (name) {
+    var input = fld(name);
+    if (input) on(input, 'blur', function () { validateField(name); });
   });
 
-  var year = document.getElementById('year');
-  if (year) year.textContent = new Date().getFullYear();
+  /* تلميح: أي مقاسات يحتاجها التصميم المختار */
+  var design = fld('design');
+  var hint = document.getElementById('required-hint');
+  function updateHint() {
+    if (!hint) return;
+    var opt = design.selectedOptions[0];
+    var cat = opt && opt.dataset ? opt.dataset.cat : '';
+    var need = REQUIRED[cat];
+    hint.textContent = need && need.length
+      ? 'هذا التصميم يحتاج: ' + need.map(function (k) { return LABELS[k]; }).join('، ') + '.'
+      : '';
+  }
+  on(design, 'change', updateHint);
+  updateHint();
+
+  on(form, 'submit', function (e) {
+    e.preventDefault();
+    var note = document.getElementById('form-note');
+    var firstBad = null;
+
+    NUMERIC.forEach(function (name) {
+      if (!validateField(name) && !firstBad) firstBad = fld(name);
+    });
+
+    /* إذا اختارت تصميمًا، نطلب المقاسات التي يحتاجها فعلًا */
+    var opt = design.selectedOptions[0];
+    var cat = opt && opt.dataset ? opt.dataset.cat : '';
+    (REQUIRED[cat] || []).forEach(function (name) {
+      var input = fld(name);
+      if (input && !String(input.value || '').trim()) {
+        fieldError(name, 'هذا المقاس مطلوب للتصميم الذي اخترتِه.');
+        if (!firstBad) firstBad = input;
+      }
+    });
+
+    var anyValue = NUMERIC.concat(['color', 'notes']).some(function (k) {
+      return String((fld(k) || {}).value || '').trim();
+    }) || String(design.value || '').trim();
+
+    if (!anyValue) {
+      note.textContent = 'اكتبي مقاسًا واحدًا على الأقل، أو اختاري التصميم، قبل إرسال الرسالة.';
+      note.hidden = false; note.classList.remove('hidden');
+      design.focus();
+      return;
+    }
+    if (firstBad) {
+      note.textContent = 'راجعي الحقول المعلَّمة بالأحمر ثم أعيدي الإرسال.';
+      note.hidden = false; note.classList.remove('hidden');
+      firstBad.focus();
+      return;
+    }
+    note.hidden = true; note.classList.add('hidden');
+
+    var lines = ['السلام عليكم 🌸', 'أرغب بطلب تفصيل على مقاسي:', ''];
+    if (design.value) lines.push('• التصميم: ' + design.value, '');
+
+    var body = BODY_FIELDS.filter(function (k) { return fld(k).value.trim(); });
+    if (body.length) {
+      lines.push('— مقاسات الجسم —');
+      body.forEach(function (k) { lines.push('• ' + LABELS[k] + ': ' + fld(k).value.trim() + ' سم'); });
+      lines.push('');
+    }
+    var garment = GARMENT_FIELDS.filter(function (k) { return fld(k).value.trim(); });
+    if (garment.length) {
+      lines.push('— مقاسات القطعة —');
+      garment.forEach(function (k) { lines.push('• ' + LABELS[k] + ': ' + fld(k).value.trim() + ' سم'); });
+      lines.push('');
+    }
+    if (fld('color').value.trim()) lines.push('• اللون المفضّل: ' + fld('color').value.trim());
+    if (fld('notes').value.trim()) lines.push('• ملاحظات: ' + fld('notes').value.trim());
+    lines.push('', 'جزاك الله خير 🤍');
+
+    window.open(waLink(lines.join('\n')), '_blank', 'noopener');
+  });
 })();

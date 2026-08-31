@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ['./*.html', './assets/js/*.js', './data/*.js'],
+  content: ['./*.html', './product/**/*.html', './src/**/*.html',
+            './assets/js/*.js', './data/*.js', './build.mjs'],
   theme: {
     extend: {
       colors: {
@@ -19,6 +20,7 @@ module.exports = {
         /* WhatsApp brand green fails 4.5:1 with white text (1.98:1);
            this deeper green keeps the signal and passes AA at 5.42:1 */
         whats:  { DEFAULT: '#0F7A3D', dark: '#0B6231' },
+        danger: { DEFAULT: '#9B2C2C' },
         /* Section tints drawn from her own fabrics — one per garment in the
            collection, so the site's colour comes from the product, not a stock palette */
         blush:  { DEFAULT: '#F1DCD3', deep: '#E8CDC1', ink: '#7A4A38' },  /* AS-01 rose floral */
