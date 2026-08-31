@@ -4,9 +4,15 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        /* Surfaces: no white anywhere. The page sits on warm oat, cards lift
+           off it a shade lighter, `deep` is the recessed step below the page. */
+        page:   { DEFAULT: '#EFE6DA' },
+        card:   { DEFAULT: '#F8F3EC' },
+        deep:   { DEFAULT: '#E4D9C9' },
+        /* `ivory` is now only a light FOREGROUND, used on the dark plum section */
         ivory:  { DEFAULT: '#FAF7F3', deep: '#F2ECE4' },
-        ink:    { DEFAULT: '#2E2A28', soft: '#5C5451', mute: '#6A615C' },
-        plum:   { DEFAULT: '#6B4B5E', dark: '#523A48', light: '#7E5C6E' },
+        ink:    { DEFAULT: '#2E2A28', soft: '#5C5451', mute: '#635A55' },
+        plum:   { DEFAULT: '#6B4B5E', dark: '#523A48', light: '#6F5062' },
         rose:   { DEFAULT: '#C9A399', light: '#E8D7D0' },
         sage:   { DEFAULT: '#8FA396' },
         gold:   { DEFAULT: '#B08D57' },
@@ -15,11 +21,11 @@ module.exports = {
         whats:  { DEFAULT: '#0F7A3D', dark: '#0B6231' },
         /* Section tints drawn from her own fabrics — one per garment in the
            collection, so the site's colour comes from the product, not a stock palette */
-        blush:  { DEFAULT: '#F7EAE4', deep: '#E8CDC1', ink: '#7A4A38' },  /* AS-01 rose floral */
-        lilac:  { DEFAULT: '#EFE7F3', deep: '#D9C8E2', ink: '#5F3B7A' },  /* AS-02 purple damask */
-        mint:   { DEFAULT: '#E4EFE8', deep: '#C6DCCF', ink: '#3F6B52' },  /* AS-03 mint & rose */
-        sand:   { DEFAULT: '#F7EFE2', deep: '#EBDAC0', ink: '#7A5B2E' },  /* AS-04 cream satin */
-        sky:    { DEFAULT: '#E7EDF3', deep: '#C9D8E4', ink: '#3D5670' }   /* AS-05 blue floral */
+        blush:  { DEFAULT: '#F1DCD3', deep: '#E8CDC1', ink: '#7A4A38' },  /* AS-01 rose floral */
+        lilac:  { DEFAULT: '#E6DAEC', deep: '#D9C8E2', ink: '#5F3B7A' },  /* AS-02 purple damask */
+        mint:   { DEFAULT: '#D9E8DF', deep: '#C6DCCF', ink: '#3F6B52' },  /* AS-03 mint & rose */
+        sand:   { DEFAULT: '#EEE0C6', deep: '#EBDAC0', ink: '#7A5B2E' },  /* AS-04 cream satin */
+        sky:    { DEFAULT: '#DDE6EF', deep: '#C9D8E4', ink: '#3D5670' }   /* AS-05 blue floral */
       },
       fontFamily: {
         display: ['Amiri', 'Georgia', 'serif'],

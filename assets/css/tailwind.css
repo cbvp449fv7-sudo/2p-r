@@ -5,13 +5,13 @@
 @layer base {
   html { scroll-behavior: smooth; }
   body {
-    @apply bg-ivory text-ink font-sans antialiased;
+    @apply bg-page text-ink font-sans antialiased;
     text-rendering: optimizeLegibility;
   }
   h1, h2, h3 { @apply font-display font-bold leading-snug; }
   /* Arabic numerals stay Latin for prices/phone so they read correctly everywhere */
   .num { font-feature-settings: "lnum"; direction: ltr; unicode-bidi: embed; }
-  :focus-visible { @apply outline-none ring-2 ring-plum ring-offset-2 ring-offset-ivory; }
+  :focus-visible { @apply outline-none ring-2 ring-plum ring-offset-2 ring-offset-page; }
 }
 
 @layer components {
@@ -33,7 +33,7 @@
   .lede    { @apply text-ink-soft leading-[2] text-[17px]; }
 
   .card {
-    @apply overflow-hidden rounded-2xl bg-white shadow-card transition-shadow duration-300 hover:shadow-lift;
+    @apply overflow-hidden rounded-2xl bg-card shadow-card transition-shadow duration-300 hover:shadow-lift;
   }
   .chip {
     @apply cursor-pointer rounded-full border border-ink/12 px-4 text-sm text-ink-soft
@@ -47,7 +47,7 @@
   .chip-on { @apply border-plum bg-plum text-ivory hover:text-ivory; }
 
   .field {
-    @apply w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-[15px]
+    @apply w-full rounded-xl border border-ink/15 bg-card px-4 py-3 text-[15px]
            placeholder:text-ink-mute focus:border-plum focus:outline-none focus:ring-2 focus:ring-plum/20;
   }
   .label { @apply mb-1.5 block text-sm font-medium text-ink-soft; }
