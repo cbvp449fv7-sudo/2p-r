@@ -8,12 +8,14 @@
    • img     : اسم الصورة داخل assets/images/products (بدون .jpg)
    • price   : اتركيه "" ليظهر «السعر عبر الواتساب»، أو اكتبي مثلًا "١٥٠"
    • fabric  : اتركيه "" ليختفي السطر، أو اكتبي "قطن" / "بوال"
+   • colors  : ألوان القطعة كما تظهر في الصورة — تظهر كدوائر صغيرة تحت الاسم
    • sold    : true إذا نفد التصميم — يظهر عليه شارة «غير متوفر حاليًا»
    ═══════════════════════════════════════════════════════════════════ */
 
 window.PRODUCTS = [
   {
     code: 'AS-01',
+    colors: [{ name: 'بيج وردي', hex: '#E0C4B5' }, { name: 'بنّي', hex: '#6B4A3E' }, { name: 'شيفون بيج', hex: '#D8C3B0' }],
     cat: 'prayer',
     name: 'طقم صلاة — ورد بيج',
     img: 'as-01-rose-floral',
@@ -25,6 +27,7 @@ window.PRODUCTS = [
   },
   {
     code: 'AS-02',
+    colors: [{ name: 'بنفسجي', hex: '#5F3B7A' }, { name: 'باذنجاني', hex: '#2C1D35' }, { name: 'أبيض', hex: '#E4E0E8' }],
     cat: 'prayer',
     name: 'طقم صلاة — نقش دمشقي بنفسجي',
     img: 'as-02-purple-damask',
@@ -36,6 +39,7 @@ window.PRODUCTS = [
   },
   {
     code: 'AS-03',
+    colors: [{ name: 'أخضر فاتح', hex: '#B9D6C9' }, { name: 'أصفر', hex: '#E8D68B' }, { name: 'دانتيل أبيض', hex: '#F1EFE7' }],
     cat: 'prayer',
     name: 'طقم صلاة — ورد أصفر على أخضر',
     img: 'as-03-mint-rose',
@@ -47,6 +51,7 @@ window.PRODUCTS = [
   },
   {
     code: 'AS-04',
+    colors: [{ name: 'كريمي', hex: '#EFE0CB' }, { name: 'دانتيل عاجي', hex: '#F7F1E6' }],
     cat: 'prayer',
     name: 'طقم صلاة — ساتان كريمي سادة',
     img: 'as-04-cream-satin',
@@ -58,6 +63,7 @@ window.PRODUCTS = [
   },
   {
     code: 'AS-05',
+    colors: [{ name: 'أزرق رمادي', hex: '#7B92A5' }, { name: 'بنّي', hex: '#9E6C50' }, { name: 'دانتيل أبيض', hex: '#ECEEEF' }],
     cat: 'prayer',
     name: 'طقم صلاة — ورد على أزرق رمادي',
     img: 'as-05-blue-floral',
@@ -73,6 +79,7 @@ window.PRODUCTS = [
     code: 'TU-01',
     cat: 'turban',
     name: 'توربان — اسم التصميم',
+    colors: [{ name: 'اسم اللون', hex: '#CCCCCC' }],
     img: 'tu-01-example',
     desc: 'وصف قصير للتصميم.',
     details: ['تفصيل ١', 'تفصيل ٢'],

@@ -27,6 +27,17 @@
       : '';
     var fabric = p.fabric
       ? '<p class="mt-1 text-sm text-ink-mute">القماش: ' + p.fabric + '</p>' : '';
+    var swatches = (p.colors || []).length
+      ? '<div class="mt-3 flex items-center gap-2">'
+        + '<span class="sr-only">ألوان القطعة: ' + p.colors.map(function (c) { return c.name; }).join('، ') + '</span>'
+        + p.colors.map(function (c) {
+            return '<span class="h-5 w-5 rounded-full ring-1 ring-ink/15" title="' + c.name
+                 + '" style="background:' + c.hex + '"></span>';
+          }).join('')
+        + '<span class="text-xs text-ink-mute">' + p.colors.map(function (c) { return c.name; }).join(' · ') + '</span>'
+        + '</div>'
+      : '';
+
     var chips = (p.details || []).map(function (d) {
       return '<li class="rounded-full bg-ivory-deep px-3 py-1 text-xs text-ink-soft">' + d + '</li>';
     }).join('');
@@ -52,6 +63,7 @@
       +     '</div>'
       +     '<p class="mt-2 text-sm leading-7 text-ink-soft">' + p.desc + '</p>'
       +     fabric
+      +     swatches
       +     '<ul class="mt-3 flex flex-wrap gap-1.5">' + chips + '</ul>'
       +     '<div class="mt-5 flex items-center justify-between gap-3 border-t border-ink/8 pt-4">'
       +       '<span class="text-sm">' + price + '</span>'
