@@ -21,6 +21,25 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/site.css">
+<script>
+(function(){try{
+  var r=document.documentElement,q=new URLSearchParams(location.search),m=window.matchMedia;
+  var seen=false;try{seen=sessionStorage.getItem('areej:intro')==='1';}catch(e){}
+  var c=navigator.connection||{};
+  var reduce=m&&m('(prefers-reduced-motion: reduce)').matches;
+  var slow=c.saveData===true||/2g/.test(c.effectiveType||'');
+  var weak=(navigator.hardwareConcurrency||8)<=2||(navigator.deviceMemory||8)<=1;
+  var forced=q.get('intro');
+  var skip=reduce||seen||slow||location.hash||forced==='0';
+  if(forced==='1'||!skip){
+    r.setAttribute('data-intro',weak?'static':'on');
+    window.__introWatchdog=setTimeout(function(){
+      if(!window.__introBooted){r.removeAttribute('data-intro');document.body.style.overflow='';}
+    },4000);
+  }
+}catch(e){}
+})();
+</script>
 
 <script type="application/ld+json">{
   "@context": "https://schema.org",
@@ -459,6 +478,7 @@
 <script src="data/business.js"></script>
 <script src="data/products.js"></script>
 <script src="assets/js/site.js" defer></script>
+<script src="assets/js/intro.js" defer></script>
 
 </body>
 </html>

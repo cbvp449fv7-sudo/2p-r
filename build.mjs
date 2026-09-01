@@ -202,6 +202,7 @@ function pageCtx({ title, desc, path, active, prefix = '', ogImage, extraHead = 
     NAV_MOBILE: navHtml(active, prefix).replace(/navlink tap py-2/g, 'navlink tap py-3 text-[15px]'),
     YEAR: String(new Date().getFullYear()),
     EXTRA_HEAD: extraHead, JSONLD: jsonld,
+    INTRO_GATE: '', INTRO_SCRIPT: '',
     WA_GENERAL: wa('السلام عليكم 🌸 أود الاستفسار عن التصاميم المتوفرة والمقاسات.'),
     IG: 'https://instagram.com/' + BUSINESS.instagram,
     MAROOF: BUSINESS.maroof.url, MAROOF_ID: BUSINESS.maroof.id,
@@ -349,6 +350,31 @@ const orgJsonLd = `<script type="application/ld+json">${JSON.stringify({
                   telephone: '+' + BUSINESS.whatsapp, availableLanguage: ['ar'] }
 }, null, 2)}<\/script>`;
 
+
+/* ── بوّابة المقدّمة ─────────────────────────────────────────────────────
+   سكربت صغير داخل <head> يقرّر قبل أول رسم هل تُعرض المقدّمة أصلًا.
+   لا يُخفي أي محتوى — يضبط سمة فقط، وله مؤقّت أمان لو فشل تحميل intro.js. */
+const INTRO_GATE = `<script>
+(function(){try{
+  var r=document.documentElement,q=new URLSearchParams(location.search),m=window.matchMedia;
+  var seen=false;try{seen=sessionStorage.getItem('areej:intro')==='1';}catch(e){}
+  var c=navigator.connection||{};
+  var reduce=m&&m('(prefers-reduced-motion: reduce)').matches;
+  var slow=c.saveData===true||/2g/.test(c.effectiveType||'');
+  var weak=(navigator.hardwareConcurrency||8)<=2||(navigator.deviceMemory||8)<=1;
+  var forced=q.get('intro');
+  var skip=reduce||seen||slow||location.hash||forced==='0';
+  if(forced==='1'||!skip){
+    r.setAttribute('data-intro',weak?'static':'on');
+    window.__introWatchdog=setTimeout(function(){
+      if(!window.__introBooted){r.removeAttribute('data-intro');document.body.style.overflow='';}
+    },4000);
+  }
+}catch(e){}
+})();
+<\/script>`;
+const INTRO_SCRIPT = `<script src="assets/js/intro.js" defer><\/script>`;
+
 /* ── كتابة الصفحات ──────────────────────────────────────────────────────── */
 const write = (rel, html) => {
   const full = p(rel);
@@ -370,6 +396,7 @@ written.push(write('index.html', render(readFileSync(p('src/pages/index.html'), 
   ...pageCtx({ title: `${BUSINESS.name} | أطقم صلاة مخيطة على مقاسك`,
     desc: 'أطقم صلاة وتوربان وطرح حجاب من البوال والقطن، مخيطة يدويًا وبمقاسات حسب الطلب. الطلب مباشرة عبر الواتساب.',
     path: 'index.html', active: 'home', jsonld: orgJsonLd }),
+  INTRO_GATE, INTRO_SCRIPT,
   HERO_IMAGE: heroImage, TRUST_ITEMS: trustItems, FEATURED: featured,
   CATEGORY_NOTE: categoryNote, ORDER_STEPS: orderSteps, FULFILMENT_NOTE: fulfilmentNote,
   REVIEWS_SECTION: reviewsSection, CUSTOMER_PHOTOS: customerPhotos,

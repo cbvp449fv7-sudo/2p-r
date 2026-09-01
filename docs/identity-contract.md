@@ -217,7 +217,13 @@ roughly **eleven times the whole current site**, before a single texture.
 critical path, and must not delay first paint of the homepage at all (it loads after,
 and only when it will actually play).
 
-**Recommendation, for the owner of the brief to accept or reject:** the narrative in
+**Decision taken (implemented):** canvas 2D, no WebGL, no dependency. The intro
+ships at **4.1 KB gzipped added** (13.5 → 17.6 KB total) against a 60 KB budget —
+roughly 1/36th of what a Three.js build would have cost. The render layer is
+isolated in `createClothRenderer()`, so swapping to WebGL later touches one
+function and none of the state machine, cleanup or eligibility logic.
+
+**Original recommendation, for the record:** the narrative in
 §3 — cloth settling, a stitch drawing itself, a fold resolving into the hero, the
 label appearing — is achievable in **2D canvas or animated SVG plus CSS**, at roughly
 a tenth of the weight, with no WebGL failure modes to design around. The requirement

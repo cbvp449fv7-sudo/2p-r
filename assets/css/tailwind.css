@@ -141,3 +141,89 @@
   .field-error { @apply border-danger bg-danger/5; }
   .err-msg { @apply mt-1.5 flex items-start gap-1.5 text-sm text-danger; }
 }
+
+/* ═══ المقدّمة ═══════════════════════════════════════════════════════════
+   الطبقة تُبنى بالجافاسكربت فقط. بدون جافاسكربت لا توجد أصلًا،
+   فالصفحة تظهر كاملة — وهذا مقصود.                                       */
+@layer components {
+
+  [data-intro="on"] body,
+  [data-intro="static"] body { overflow: hidden; }
+
+  #intro {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: grid;
+    place-items: center;
+    background: theme('colors.page.DEFAULT');
+    opacity: 1;
+    transition: opacity .4s ease-out;
+  }
+  #intro.is-done { opacity: 0; }
+
+  #intro-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* لحظة العلامة — تظهر بقيمة --reveal التي يضبطها السكربت */
+  /* لوحة العلامة تجلس على سطح ثابت بلون البطاقة — يضمن التباين في كل لقطة
+     مهما تحرّك القماش خلفها، ويقرأ كليبل مخيط على القطعة. */
+  #intro-brand {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: .7rem;
+    padding: 1.75rem 2.5rem 1.5rem;
+    border-radius: 1.75rem;
+    background: theme('colors.card.DEFAULT');
+    box-shadow: theme('boxShadow.lift');
+    opacity: var(--reveal, 0);
+    transform: scale(calc(.97 + var(--reveal, 0) * .03));
+    transition: opacity .2s linear;
+  }
+  #intro-logo {
+    width: 88px; height: 88px;
+    border-radius: 9999px;
+    box-shadow: theme('boxShadow.card');
+  }
+  #intro-name {
+    @apply font-display text-2xl font-bold text-ink;
+    line-height: 1.2;
+    text-align: center;
+  }
+  #intro-name span {
+    @apply block font-sans text-[11px] font-normal tracking-widest text-ink-mute;
+    margin-top: .15rem;
+  }
+
+  /* الخطّ المخيط تحت الاسم — نفس دافع .ticks في الواجهة، فيصل المشهد بالصفحة */
+  #intro-brand::after {
+    content: '';
+    width: calc(var(--reveal, 0) * 132px);
+    height: 2px;
+    background-image: linear-gradient(to left,
+      theme('colors.plum.DEFAULT') 0 5px, transparent 5px 9px);
+    background-size: 9px 2px;
+    opacity: .5;
+  }
+
+  /* زر التخطّي: على سطح ثابت لا فوق القماش المتحرّك، ليبقى التباين مضمونًا
+     في كل لقطة (ink على card = 12.4:1) */
+  #intro-skip {
+    position: absolute;
+    inset-block-start: 1rem;
+    inset-inline-end: 1rem;
+    min-height: 44px;
+    @apply cursor-pointer rounded-full bg-card px-5 text-sm text-ink shadow-card
+           transition-transform duration-150;
+    touch-action: manipulation;
+  }
+  #intro-skip:hover { @apply bg-ivory; }
+  #intro-skip:active { transform: scale(.96); }
+
+  /* المسار الثابت للأجهزة الضعيفة: علامة هادئة بلا رسم */
+  #intro.is-static { background: theme('colors.page.DEFAULT'); }
+
+  @media (prefers-reduced-motion: reduce) {
+    #intro, #intro-brand, #intro-skip { transition: none; }
+  }
+}
