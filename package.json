@@ -10,7 +10,8 @@
     "watch": "tailwindcss -i assets/css/tailwind.css -o assets/css/site.css --watch",
     "serve": "python3 -m http.server 8080",
     "start": "npm run build && npm run serve",
-    "validate:html": "html-validate index.html products.html sizes.html \"product/**/*.html\""
+    "validate:html": "html-validate index.html products.html sizes.html \"product/**/*.html\"",
+    "preview": "npm run build && node build-preview.mjs"
   },
   "devDependencies": {
     "axe-core": "^4.13.0",

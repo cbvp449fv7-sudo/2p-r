@@ -5,3 +5,4 @@ node_modules/
 # Design tooling installed on demand, not part of the site.
 # Reinstall with: npx ui-ux-pro-max-cli init --ai claude
 .claude/skills/
+preview-test.html

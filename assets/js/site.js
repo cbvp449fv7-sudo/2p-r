@@ -111,8 +111,11 @@
     function openLb(btn) {
       opener = btn;
       var file = btn.dataset.file, alt = btn.dataset.alt || '';
-      lbSrc.srcset = IMG + file + '.webp';
-      lbImg.src = IMG + file + '.jpg';
+      /* data-file is normally an image slug, but may be a full data: URL when the
+         page is bundled into a single file. Tolerate a missing <source> too. */
+      var isUrl = /^data:|^https?:/.test(file);
+      if (lbSrc) lbSrc.srcset = isUrl ? file : IMG + file + '.webp';
+      lbImg.src = isUrl ? file : IMG + file + '.jpg';
       lbImg.alt = alt;
       lbTitle.textContent = alt;
       lb.classList.remove('hidden');
@@ -124,7 +127,7 @@
       lb.classList.add('hidden');
       lb.classList.remove('flex');
       lbImg.removeAttribute('src');
-      lbSrc.removeAttribute('srcset');
+      if (lbSrc) lbSrc.removeAttribute('srcset');
       document.body.style.overflow = '';
       if (opener) { opener.focus(); opener = null; }
     }

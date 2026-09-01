@@ -66,8 +66,10 @@
      وتكبيره على كامل الشاشة يظهره مهترئًا (راجعي العقد §9). */
   var brand = document.createElement('div');
   brand.id = 'intro-brand';
+  /* مصدر الشعار قابل للتهيئة، لتعمل المقدّمة داخل نسخة معاينة من ملف واحد */
+  var logoSrc = window.INTRO_LOGO || 'assets/images/brand/logo.png';
   brand.innerHTML =
-    '<img src="assets/images/brand/logo.png" alt="" width="88" height="88" id="intro-logo">' +
+    '<img src="' + logoSrc + '" alt="" width="88" height="88" id="intro-logo">' +
     '<p id="intro-name">أريج شاولي<span>للخياطة</span></p>';
   overlay.appendChild(brand);
 
