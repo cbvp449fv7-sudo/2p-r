@@ -706,3 +706,33 @@ describe("persistence and demo preservation", () => {
     expect(migrated.rooms[0].capacity).toBeNull();
   });
 });
+
+describe("the demo dataset's unscheduled count", () => {
+  it("is the gap between required and stored meetings, not a scheduling failure", () => {
+    const data = createDemoData();
+    const required = data.sections.reduce(
+      (n, s) => n + s.courseCodes.reduce((x, c) => x + (data.courses.find((k) => k.code === c)?.meetingsPerWeek ?? 0), 0),
+      0,
+    );
+    // The dashboard shows required minus stored, which is why the demo starts
+    // with 25 unscheduled: it ships two seeded meetings out of twenty-seven.
+    expect(required).toBe(27);
+    expect(data.assignments).toHaveLength(2);
+    expect(required - data.assignments.length).toBe(25);
+
+    // The generator can place every one of them, so nothing is unsatisfiable.
+    const result = generate(data, "balanced");
+    expect(result.ok).toBe(true);
+    expect(result.unscheduled).toHaveLength(0);
+    expect(result.assignments).toHaveLength(required);
+  });
+
+  it("counts a locked meeting toward its own weekly requirement exactly once", () => {
+    const data = createDemoData();
+    const result = generate(data, "balanced");
+    expect(result.assignments.filter((a) => a.id === "A-001")).toHaveLength(1);
+    const lockedCourseSection = result.assignments.filter((a) => a.courseCode === data.assignments[0].courseCode && a.sectionId === data.assignments[0].sectionId);
+    const course = data.courses.find((c) => c.code === data.assignments[0].courseCode)!;
+    expect(lockedCourseSection).toHaveLength(course.meetingsPerWeek);
+  });
+});

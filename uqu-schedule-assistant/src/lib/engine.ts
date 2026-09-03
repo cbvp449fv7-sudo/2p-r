@@ -136,7 +136,22 @@ export type GenerateResult = {
 export function generate(data: AppData, mode: "balanced" | "faculty" | "compact" = "balanced"): GenerateResult {
   const started = Date.now();
   const locked = [...data.assignments.filter((a) => a.locked)];
-  const existing = new Set(locked.map((a) => `${a.courseCode}|${a.sectionId}|${a.activity ?? ""}`));
+  // Locked meetings already cover part of the week. Count them per course and
+  // section — by activity where the course has confirmed activity templates —
+  // so the generator produces only the remaining meetings and never schedules
+  // a locked one twice.
+  const lockedCounts = new Map<string, number>();
+  for (const a of locked) {
+    for (const key of [`${a.courseCode}|${a.sectionId}`, `${a.courseCode}|${a.sectionId}|${a.activity ?? ""}`]) {
+      lockedCounts.set(key, (lockedCounts.get(key) ?? 0) + 1);
+    }
+  }
+  const takeCovered = (key: string) => {
+    const remaining = lockedCounts.get(key) ?? 0;
+    if (remaining <= 0) return false;
+    lockedCounts.set(key, remaining - 1);
+    return true;
+  };
   const needs: Need[] = [];
 
   for (const section of data.sections) {
@@ -146,11 +161,12 @@ export function generate(data: AppData, mode: "balanced" | "faculty" | "compact"
       const patterns = data.coursePatterns.filter((p) => p.courseCode === code);
       const activities = patterns.length ? patterns : [{ courseCode: code, activity: "", periods: 0, deliveryMode: "in-person" as const, observations: 0, confirmed: false, source: "inferred" as const }];
       for (const pattern of activities) {
-        if (existing.has(`${code}|${section.id}|${pattern.activity}`)) continue;
+        const key = pattern.activity ? `${code}|${section.id}|${pattern.activity}` : `${code}|${section.id}`;
         const faculty = data.faculty.find((x) => x.specialization === course.specialization && (x.campus === section.campus || isRemoteActivity(pattern.activity)));
-        if (!faculty) continue;
         const repeats = pattern.activity ? 1 : course.meetingsPerWeek;
         for (let i = 0; i < repeats; i += 1) {
+          if (takeCovered(key)) continue;
+          if (!faculty) continue;
           needs.push({ course, section, faculty, activity: pattern.activity, periods: pattern.periods });
         }
       }
