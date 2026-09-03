@@ -1,28 +1,320 @@
-import type { AppData,Assignment,Course,Section,Faculty,Room } from "./types";
+import type { AppData, Assignment, Course, Faculty, Room, Section } from "./types";
 import { teachingUnits } from "./rules";
-export type Conflict={type:string;assignmentId:string;message:string};
-const mins=(t:string)=>{const[h,m]=t.split(":").map(Number);return h*60+m};
-const overlap=(a:Assignment,b:Assignment)=>a.day===b.day&&mins(a.start)<mins(b.end)&&mins(b.start)<mins(a.end);
-const inside=(day:string,start:string,end:string,periods:{day:string;start:string;end:string}[])=>periods.some(p=>p.day===day&&mins(start)>=mins(p.start)&&mins(end)<=mins(p.end));
-export function conflictsFor(a:Assignment,all:Assignment[],data:Pick<AppData,"faculty"|"courses"|"sections"|"rooms">):Conflict[]{
- const out:Conflict[]=[];const course=data.courses.find(x=>x.code===a.courseCode),section=data.sections.find(x=>x.id===a.sectionId),faculty=data.faculty.find(x=>x.id===a.facultyId),room=data.rooms.find(x=>x.id===a.roomId);
- if(!course||!section||!faculty||!room)return[{type:"reference",assignmentId:a.id,message:`${a.id} has an unknown reference.`}];
- for(const b of all)if(b.id!==a.id&&overlap(a,b)){const bc=data.courses.find(x=>x.code===b.courseCode);if(b.roomId===a.roomId)out.push({type:"room",assignmentId:a.id,message:`Room ${room.id} is already assigned to ${bc?.code}, ${b.sectionId}, on ${a.day} from ${b.start} to ${b.end}.`});if(b.facultyId===a.facultyId)out.push({type:"faculty",assignmentId:a.id,message:`${faculty.nameEn} is already teaching ${bc?.code} on ${a.day} from ${b.start} to ${b.end}.`});const bs=data.sections.find(x=>x.id===b.sectionId);if(b.sectionId===a.sectionId||section.sharedGroups.some(g=>bs?.sharedGroups.includes(g)))out.push({type:"students",assignmentId:a.id,message:`${section.id} or its shared student group overlaps ${b.sectionId} on ${a.day}.`})}
- if(room.capacity<section.students)out.push({type:"capacity",assignmentId:a.id,message:`Room ${room.id} capacity (${room.capacity}) is below ${section.id} enrollment (${section.students}).`});
- if(room.type!==course.roomType)out.push({type:"room-type",assignmentId:a.id,message:`${course.code} requires ${course.roomType}; ${room.id} is ${room.type}.`});
- if(room.campus!==section.campus||faculty.campus!==section.campus)out.push({type:"campus",assignmentId:a.id,message:`Campus/section mismatch for ${course.code}, ${section.id}.`});
- if(faculty.specialization!==course.specialization&&!a.overrideReason)out.push({type:"specialization",assignmentId:a.id,message:`${faculty.nameEn} specialization does not match ${course.code}; an authorized override reason is required.`});
- if(!inside(a.day,a.start,a.end,faculty.available)||inside(a.day,a.start,a.end,faculty.unavailable))out.push({type:"faculty-availability",assignmentId:a.id,message:`${faculty.nameEn} is unavailable on ${a.day} from ${a.start} to ${a.end}.`});
- if(!inside(a.day,a.start,a.end,room.availability))out.push({type:"room-availability",assignmentId:a.id,message:`Room ${room.id} is unavailable on ${a.day} from ${a.start} to ${a.end}.`});return out;
+import {
+  THURSDAY,
+  candidateDayOrder,
+  capacityBlocked,
+  isRemote,
+  isRemoteActivity,
+  occupiesRoom,
+  remoteRoomViolation,
+  thursdayCheck,
+  travelConflicts,
+} from "./schedule-rules";
+import { clockToMinutes, periodsToRange } from "./period-table";
+
+export type Conflict = { type: string; assignmentId: string; message: string };
+
+const mins = (t: string) => clockToMinutes(t);
+
+/** Clock span of a meeting, taking period definitions into account. */
+function span(a: Pick<Assignment, "periods" | "start" | "end">, data: Pick<AppData, "settings">) {
+  if (a.periods?.length) {
+    const range = periodsToRange(data.settings, a.periods);
+    if (range) return { start: mins(range.start), end: mins(range.end) };
+  }
+  return { start: mins(a.start), end: mins(a.end) };
 }
-export function allConflicts(data:AppData){return data.assignments.flatMap(a=>conflictsFor(a,data.assignments,data))}
-type Need={course:Course;section:Section;faculty:Faculty};
-export function generate(data:AppData,mode:"balanced"|"faculty"|"compact"="balanced"){
- const started=Date.now(),locked=[...data.assignments.filter(a=>a.locked)],existing=new Set(locked.map(a=>`${a.courseCode}|${a.sectionId}`));const needs:Need[]=[];
- for(const s of data.sections)for(const code of s.courseCodes){const c=data.courses.find(x=>x.code===code);if(!c||existing.has(`${code}|${s.id}`))continue;const f=data.faculty.find(x=>x.specialization===c.specialization&&x.campus===s.campus);if(f)for(let i=0;i<c.meetingsPerWeek;i++)needs.push({course:c,section:s,faculty:f})}
- needs.sort((a,b)=>candidateCount(a,data)-candidateCount(b,data)||a.course.code.localeCompare(b.course.code));let result:Assignment[]|null=null;
- const search=(i:number,current:Assignment[]):boolean=>{if(Date.now()-started>data.settings.timeoutMs)return false;if(i===needs.length){result=current;return true}const n=needs[i];for(const c of candidates(n,data,mode)){const a:Assignment={...c,id:`GEN-${String(i+1).padStart(3,"0")}`,createdAt:new Date(0).toISOString(),updatedAt:new Date().toISOString(),locked:false,overtime:false,approval:"not-required",teachingUnits:teachingUnits(n.course)};if(conflictsFor(a,current,data).length===0&&search(i+1,[...current,a]))return true}return false};search(0,locked);
- if(!result)return{ok:false as const,assignments:locked,score:0,warnings:["No valid schedule found within the configured timeout."]};const cs=(result as Assignment[]).flatMap(a=>conflictsFor(a,result as Assignment[],data));return{ok:true as const,assignments:result as Assignment[],score:Math.max(0,100-cs.length*8),warnings:cs.map(c=>c.message)};
+
+function overlap(a: Assignment, b: Assignment, data: Pick<AppData, "settings">) {
+  if (a.day !== b.day) return false;
+  if (a.periods?.length && b.periods?.length) return a.periods.some((p) => b.periods?.includes(p));
+  const x = span(a, data);
+  const y = span(b, data);
+  return x.start < y.end && y.start < x.end;
 }
-function candidateCount(n:Need,d:AppData){return candidates(n,d,"balanced").length}
-function candidates(n:Need,d:AppData,mode:string){const arr:Omit<Assignment,"id"|"createdAt"|"updatedAt"|"teachingUnits"|"locked"|"overtime"|"approval">[]=[];for(const day of d.settings.days)for(let h=d.settings.startHour;h<=d.settings.endHour-Math.ceil(n.course.duration/60);h++)for(const room of d.rooms.filter(r=>r.campus===n.section.campus&&r.type===n.course.roomType&&r.capacity>=n.section.students)){const start=`${String(h).padStart(2,"0")}:00`,endMin=h*60+n.course.duration,end=`${String(Math.floor(endMin/60)).padStart(2,"0")}:${String(endMin%60).padStart(2,"0")}`;arr.push({courseCode:n.course.code,sectionId:n.section.id,facultyId:n.faculty.id,roomId:room.id,day,start,end})}return arr.sort((a,b)=>{const ap=n.faculty.preferredDays.includes(a.day)?0:1,bp=n.faculty.preferredDays.includes(b.day)?0:1;return mode==="faculty"?ap-bp||a.start.localeCompare(b.start):mode==="compact"?a.start.localeCompare(b.start)||a.day.localeCompare(b.day):a.day.localeCompare(b.day)||a.start.localeCompare(b.start)||a.roomId.localeCompare(b.roomId)})}
+
+const inside = (day: string, start: string, end: string, periods: { day: string; start: string; end: string }[]) =>
+  periods.some((p) => p.day === day && mins(start) >= mins(p.start) && mins(end) <= mins(p.end));
+
+export function conflictsFor(a: Assignment, all: Assignment[], data: Pick<AppData, "faculty" | "courses" | "sections" | "rooms" | "settings" | "travelRules">): Conflict[] {
+  const out: Conflict[] = [];
+  const course = data.courses.find((x) => x.code === a.courseCode);
+  const section = data.sections.find((x) => x.id === a.sectionId);
+  const faculty = data.faculty.find((x) => x.id === a.facultyId);
+  const remote = isRemote(a);
+  const room = remote ? null : data.rooms.find((x) => x.id === a.roomId);
+
+  if (!course || !section) return [{ type: "reference", assignmentId: a.id, message: `${a.id} has an unknown course or section reference.` }];
+  if (!faculty) out.push({ type: "faculty-missing", assignmentId: a.id, message: `${a.id} has no faculty member assigned.` });
+  if (!remote && !room) out.push({ type: "room-missing", assignmentId: a.id, message: `${a.id} is in-person but has no valid room.` });
+
+  const remoteViolation = remoteRoomViolation(a);
+  if (remoteViolation) out.push({ type: "remote-room", assignmentId: a.id, message: remoteViolation });
+
+  const range = span(a, data);
+  const startClock = a.periods?.length ? (periodsToRange(data.settings, a.periods)?.start ?? a.start) : a.start;
+  const endClock = a.periods?.length ? (periodsToRange(data.settings, a.periods)?.end ?? a.end) : a.end;
+
+  for (const b of all) {
+    if (b.id === a.id || !overlap(a, b, data)) continue;
+    const bc = data.courses.find((x) => x.code === b.courseCode);
+    // A remote meeting never occupies a room, so it can never clash over one.
+    if (occupiesRoom(a) && occupiesRoom(b) && b.roomId === a.roomId) {
+      out.push({ type: "room", assignmentId: a.id, message: `Room ${a.roomId} is already assigned to ${bc?.code}, ${b.sectionId}, on ${a.day} from ${b.start} to ${b.end}.` });
+    }
+    // Faculty and student clashes apply to remote meetings too.
+    if (b.facultyId === a.facultyId && faculty) {
+      out.push({ type: "faculty", assignmentId: a.id, message: `${faculty.nameEn} is already teaching ${bc?.code} on ${a.day} at the same time.` });
+    }
+    const bs = data.sections.find((x) => x.id === b.sectionId);
+    if (b.sectionId === a.sectionId || section.sharedGroups.some((g) => bs?.sharedGroups.includes(g))) {
+      out.push({ type: "students", assignmentId: a.id, message: `${section.id} or its shared student group overlaps ${b.sectionId} on ${a.day}.` });
+    }
+  }
+
+  if (room) {
+    const capacityIssue = capacityBlocked(room, section, a.overrideReason);
+    if (capacityIssue) out.push({ type: "capacity", assignmentId: a.id, message: `Room ${room.id}: ${capacityIssue}` });
+    if (room.type !== course.roomType) out.push({ type: "room-type", assignmentId: a.id, message: `${course.code} requires ${course.roomType}; ${room.id} is ${room.type}.` });
+    if (room.campus !== section.campus) out.push({ type: "campus", assignmentId: a.id, message: `Room campus does not match ${section.id}.` });
+    if (room.availability.length && !inside(a.day, startClock, endClock, room.availability)) {
+      out.push({ type: "room-availability", assignmentId: a.id, message: `Room ${room.id} is unavailable on ${a.day} from ${startClock} to ${endClock}.` });
+    }
+  }
+
+  if (faculty) {
+    if (faculty.campus !== section.campus && !remote) out.push({ type: "campus", assignmentId: a.id, message: `Campus mismatch for ${course.code}, ${section.id}.` });
+    if (faculty.specialization !== course.specialization && !a.overrideReason) {
+      out.push({ type: "specialization", assignmentId: a.id, message: `${faculty.nameEn} specialization does not match ${course.code}; an authorized override reason is required.` });
+    }
+    // Availability applies to remote meetings as well.
+    if (faculty.available.length && (!inside(a.day, startClock, endClock, faculty.available) || inside(a.day, startClock, endClock, faculty.unavailable))) {
+      out.push({ type: "faculty-availability", assignmentId: a.id, message: `${faculty.nameEn} is unavailable on ${a.day} from ${startClock} to ${endClock}.` });
+    }
+  }
+
+  const thursday = thursdayCheck(a, data.settings);
+  if (thursday.inPerson && thursday.requiresReason) {
+    out.push({ type: "thursday", assignmentId: a.id, message: `${a.id}: ${thursday.message}` });
+  }
+
+  for (const travel of travelConflicts(data as Pick<AppData, "rooms" | "settings" | "travelRules">, all, a.facultyId)) {
+    if (travel.assignmentId === a.id && travel.hard) out.push({ type: "travel", assignmentId: a.id, message: travel.message });
+  }
+
+  void range;
+  return out;
+}
+
+export function allConflicts(data: AppData) {
+  return data.assignments.flatMap((a) => conflictsFor(a, data.assignments, data));
+}
+
+type Need = { course: Course; section: Section; faculty: Faculty; activity: string; periods: number };
+
+export type UnscheduledReason = {
+  need: { courseCode: string; sectionId: string; activity: string; facultyId: string; requiredPeriods: number };
+  hardConstraints: string[];
+  consideredDays: string[];
+  rejectedRooms: { roomId: string; reason: string }[];
+  thursdayWouldHelp: boolean;
+  overrideRequired: boolean;
+};
+
+export type GenerateResult = {
+  ok: boolean;
+  assignments: Assignment[];
+  score: number;
+  warnings: string[];
+  /** Every meeting the generator could not place, with the reasons why. */
+  unscheduled: UnscheduledReason[];
+  /** Written explanation for each Thursday placement the generator chose. */
+  thursdayExplanations: { assignmentId: string; reason: string }[];
+};
+
+export function generate(data: AppData, mode: "balanced" | "faculty" | "compact" = "balanced"): GenerateResult {
+  const started = Date.now();
+  const locked = [...data.assignments.filter((a) => a.locked)];
+  const existing = new Set(locked.map((a) => `${a.courseCode}|${a.sectionId}|${a.activity ?? ""}`));
+  const needs: Need[] = [];
+
+  for (const section of data.sections) {
+    for (const code of section.courseCodes) {
+      const course = data.courses.find((x) => x.code === code);
+      if (!course) continue;
+      const patterns = data.coursePatterns.filter((p) => p.courseCode === code);
+      const activities = patterns.length ? patterns : [{ courseCode: code, activity: "", periods: 0, deliveryMode: "in-person" as const, observations: 0, confirmed: false, source: "inferred" as const }];
+      for (const pattern of activities) {
+        if (existing.has(`${code}|${section.id}|${pattern.activity}`)) continue;
+        const faculty = data.faculty.find((x) => x.specialization === course.specialization && (x.campus === section.campus || isRemoteActivity(pattern.activity)));
+        if (!faculty) continue;
+        const repeats = pattern.activity ? 1 : course.meetingsPerWeek;
+        for (let i = 0; i < repeats; i += 1) {
+          needs.push({ course, section, faculty, activity: pattern.activity, periods: pattern.periods });
+        }
+      }
+    }
+  }
+
+  needs.sort((a, b) => candidateCount(a, data) - candidateCount(b, data) || a.course.code.localeCompare(b.course.code));
+
+  let result: Assignment[] | null = null;
+  const unscheduled: UnscheduledReason[] = [];
+
+  const search = (i: number, current: Assignment[]): boolean => {
+    if (Date.now() - started > data.settings.timeoutMs) return false;
+    if (i === needs.length) {
+      result = current;
+      return true;
+    }
+    const need = needs[i];
+    const options = candidates(need, data, mode);
+    const rejectedRooms: { roomId: string; reason: string }[] = [];
+    const hardConstraints = new Set<string>();
+    let thursdayWouldHelp = false;
+
+    for (const option of options) {
+      const assignment = materialise(option, need, i);
+      const problems = conflictsFor(assignment, current, data);
+      if (problems.length === 0) {
+        if (search(i + 1, [...current, assignment])) return true;
+        continue;
+      }
+      for (const problem of problems) {
+        hardConstraints.add(problem.message);
+        if (problem.type === "capacity" || problem.type === "room" || problem.type === "room-type" || problem.type === "room-availability") {
+          if (assignment.roomId) rejectedRooms.push({ roomId: assignment.roomId, reason: problem.message });
+        }
+      }
+      if (option.day === THURSDAY && problems.every((p) => p.type === "thursday")) thursdayWouldHelp = true;
+    }
+
+    unscheduled.push({
+      need: { courseCode: need.course.code, sectionId: need.section.id, activity: need.activity, facultyId: need.faculty.id, requiredPeriods: need.periods },
+      hardConstraints: [...hardConstraints].slice(0, 8),
+      consideredDays: [...new Set(options.map((o) => o.day))],
+      rejectedRooms: rejectedRooms.slice(0, 8),
+      thursdayWouldHelp,
+      overrideRequired: [...hardConstraints].some((m) => /override reason/i.test(m)),
+    });
+    return false;
+  };
+
+  search(0, locked);
+
+  if (!result) {
+    return {
+      ok: false,
+      assignments: locked,
+      score: 0,
+      warnings: ["No valid schedule found within the configured timeout. Every meeting the generator could not place is listed in the unscheduled queue."],
+      unscheduled,
+      thursdayExplanations: [],
+    };
+  }
+
+  const placed = result as Assignment[];
+  const conflicts = placed.flatMap((a) => conflictsFor(a, placed, data));
+  const thursdayExplanations = placed
+    .filter((a) => a.day === THURSDAY)
+    .map((a) => ({
+      assignmentId: a.id,
+      reason: isRemote(a)
+        ? `${a.courseCode} ${a.activity ?? ""} is remote, so Thursday costs only the lower remote penalty and uses no room.`
+        : `${a.courseCode} ${a.activity ?? ""} could not be placed on Sunday to Wednesday: ${a.thursdayReason ?? "every earlier day was blocked by a hard constraint"}.`,
+    }));
+
+  return {
+    ok: true,
+    assignments: placed,
+    score: Math.max(0, 100 - conflicts.length * 8 - softPenalty(placed, data)),
+    warnings: conflicts.map((c) => c.message),
+    unscheduled: [],
+    thursdayExplanations,
+  };
+}
+
+/** Soft cost of a schedule. Thursday in-person is heavily discouraged. */
+export function softPenalty(assignments: Assignment[], data: Pick<AppData, "settings">): number {
+  let total = 0;
+  for (const a of assignments) total += thursdayCheck(a, data.settings).penalty;
+  return Math.round(total / 10);
+}
+
+function materialise(option: CandidateOption, need: Need, index: number): Assignment {
+  const remote = isRemoteActivity(need.activity);
+  return {
+    ...option,
+    id: `GEN-${String(index + 1).padStart(3, "0")}`,
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date().toISOString(),
+    locked: false,
+    overtime: false,
+    approval: "not-required",
+    teachingUnits: need.periods || teachingUnits(need.course),
+    activity: need.activity || undefined,
+    deliveryMode: remote ? "remote" : "in-person",
+    roomId: remote ? null : option.roomId,
+    thursdayReason: option.day === THURSDAY && !remote ? "Placed on Thursday only because no Sunday-to-Wednesday option satisfied every hard constraint." : undefined,
+  };
+}
+
+type CandidateOption = {
+  courseCode: string;
+  sectionId: string;
+  facultyId: string;
+  roomId: string | null;
+  day: string;
+  start: string;
+  end: string;
+  periods: number[];
+};
+
+function candidateCount(need: Need, data: AppData) {
+  return candidates(need, data, "balanced").length;
+}
+
+function candidates(need: Need, data: AppData, mode: string): CandidateOption[] {
+  const out: CandidateOption[] = [];
+  const remote = isRemoteActivity(need.activity);
+  const length = need.periods || Math.max(1, Math.ceil(need.course.duration / 50));
+  const usable = data.settings.periods.length ? data.settings.periods : [];
+  // Sunday to Wednesday are tried before Thursday.
+  const days = candidateDayOrder(data.settings.days);
+
+  const rooms: (Room | null)[] = remote
+    ? [null]
+    : data.rooms.filter((r) => r.campus === need.section.campus && r.type === need.course.roomType && (r.capacity === null ? false : r.capacity >= need.section.students));
+
+  for (const day of days) {
+    for (let startIndex = 0; startIndex + length <= usable.length; startIndex += 1) {
+      const slice = usable.slice(startIndex, startIndex + length);
+      const periods = slice.map((p) => p.period);
+      for (const room of rooms) {
+        out.push({
+          courseCode: need.course.code,
+          sectionId: need.section.id,
+          facultyId: need.faculty.id,
+          roomId: room ? room.id : null,
+          day,
+          start: slice[0].start,
+          end: slice[slice.length - 1].end,
+          periods,
+        });
+      }
+    }
+  }
+
+  return out.sort((a, b) => {
+    // Thursday is always tried last, whatever the mode.
+    const at = a.day === THURSDAY ? 1 : 0;
+    const bt = b.day === THURSDAY ? 1 : 0;
+    if (at !== bt) return at - bt;
+    const ap = need.faculty.preferredDays.includes(a.day) ? 0 : 1;
+    const bp = need.faculty.preferredDays.includes(b.day) ? 0 : 1;
+    if (mode === "faculty") return ap - bp || a.start.localeCompare(b.start);
+    if (mode === "compact") return a.start.localeCompare(b.start) || a.day.localeCompare(b.day);
+    return a.day.localeCompare(b.day) || a.start.localeCompare(b.start) || (a.roomId ?? "").localeCompare(b.roomId ?? "");
+  });
+}
