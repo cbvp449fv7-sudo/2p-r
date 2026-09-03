@@ -1,0 +1,11 @@
+export type Locale = "en" | "ar";
+export type Rank = "Professor" | "Associate Professor" | "Assistant Professor" | "Lecturer" | "Teaching Assistant" | "Language Instructor";
+export type Period = { day: string; start: string; end: string };
+export type Faculty = { id:string; nameEn:string; nameAr:string; rank:Rank; specialization:string; campus:string; status:string; normalLimit:number; reducedLoad?:number; adminRole?:string; available:Period[]; unavailable:Period[]; preferred:Period[]; maxConsecutive:number; preferredDays:string[]; overtimeAllowed:boolean; overtimeApproval:"not-required"|"pending"|"approved"|"rejected" };
+export type Course = { code:string; nameEn:string; nameAr:string; program:string; level:number; creditHours:number; teachingType:"theoretical"|"practical"|"field"; specialization:string; meetingsPerWeek:number; duration:number; roomType:string };
+export type Section = { id:string; program:string; level:number; students:number; campus:string; courseCodes:string[]; sharedGroups:string[] };
+export type Room = { id:string; building:string; campus:string; capacity:number; type:string; availability:Period[]; accessible:boolean };
+export type Assignment = { id:string; courseCode:string; sectionId:string; facultyId:string; roomId:string; day:string; start:string; end:string; teachingUnits:number; locked:boolean; overtime:boolean; approval:"not-required"|"pending"|"approved"; overrideReason?:string; createdAt:string; updatedAt:string };
+export type ScheduleVersion = { id:string; name:string; date:string; author:string; summary:string; conflicts:number; score:number; status:"draft"|"active"|"archived"; assignments:Assignment[] };
+export type Settings = { days:string[]; startHour:number; endHour:number; totalWorkHours:number; overtimeCeiling:number|null; timeoutMs:number; weights:Record<string,number>; programs:{name:string;credits:number;enabled:boolean;status:string}[] };
+export type AppData = { schemaVersion:number; faculty:Faculty[]; courses:Course[]; sections:Section[]; rooms:Room[]; assignments:Assignment[]; versions:ScheduleVersion[]; settings:Settings; audit:{id:string;at:string;action:string;reason?:string}[] };
