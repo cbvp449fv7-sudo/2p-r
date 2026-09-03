@@ -117,9 +117,11 @@ export function roomsFromWorkbook(parsed: ParsedRoom[], entries: RoomGridEntry[]
       id: room.code,
       code: room.code,
       displayName: room.displayName,
+      // The group is the building; every imported room belongs to the one
+      // institute campus, which is what imported sections carry too.
       building: room.group,
       group: room.group,
-      campus: room.campus,
+      campus: "Institute",
       capacity: room.capacity,
       type: "Classroom",
       availability: [],

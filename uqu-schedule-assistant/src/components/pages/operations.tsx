@@ -5,7 +5,7 @@ import { AlertTriangle, CalendarDays, CheckCircle2, Download, FileSpreadsheet, I
 import { useApp } from "../app-provider";
 import { Badge, Button, Card, Dialog, Empty, ErrorSummary, Loading, PageTitle, Stat, downloadBlob, type FormError } from "../ui-kit";
 import { filterIssues, qualityReportText, runQualityChecks, QUALITY_CATEGORIES } from "@/lib/quality";
-import { buildQueue, batchRepair, type QueueItem, type Repair } from "@/lib/unscheduled";
+import { buildQueue, batchRepair, suggestRepairs, type QueueItem, type Repair } from "@/lib/unscheduled";
 import { generate, type UnscheduledReason } from "@/lib/engine";
 import { previewImpact } from "@/lib/impact";
 import { ImpactDialog } from "./core";
@@ -189,6 +189,7 @@ export function UnscheduledQueue() {
   const [selected, setSelected] = useState<string[]>([]);
   const [pending, setPending] = useState<{ label: string; next: Parameters<typeof previewImpact>[1] } | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [shown, setShown] = useState(25);
 
   useEffect(() => {
     if (!data) return;
@@ -229,7 +230,7 @@ export function UnscheduledQueue() {
   const batch = async () => {
     const chosen = items
       .filter((i) => selected.includes(i.id))
-      .map((i) => ({ itemId: i.id, repair: i.repairs[0] }))
+      .map((i) => ({ itemId: i.id, repair: (i.repairsComputed ? i.repairs : suggestRepairs(data, i.reason))[0] }))
       .filter((x) => x.repair);
     if (!chosen.length) {
       setToast("Select items that have at least one suggestion.");
@@ -269,7 +270,7 @@ export function UnscheduledQueue() {
 
       {!items.length && <Empty text="Nothing is queued. Run the generator to populate this list." />}
 
-      {items.map((item) => (
+      {items.slice(0, shown).map((item) => (
         <div className="queue-item" key={item.id}>
           <div className="card-head">
             <div>
@@ -321,6 +322,16 @@ export function UnscheduledQueue() {
           )}
 
           <h4>Ranked repair suggestions</h4>
+          {!item.repairsComputed && (
+            <Button
+              className="ghost"
+              onClick={() =>
+                setItems(items.map((x) => (x.id === item.id ? { ...x, repairs: suggestRepairs(data, x.reason), repairsComputed: true } : x)))
+              }
+            >
+              Suggest repairs for this meeting
+            </Button>
+          )}
           {item.repairs.map((repair) => (
             <div className="repair" key={repair.id}>
               <div>
@@ -332,7 +343,7 @@ export function UnscheduledQueue() {
               </Button>
             </div>
           ))}
-          {!item.repairs.length && <Empty text="No automatic repair is available; edit the schedule directly." />}
+          {item.repairsComputed && !item.repairs.length && <Empty text="No automatic repair is available; edit the schedule directly." />}
 
           <label htmlFor={`note-${item.id}`}>
             Leave unresolved with a documented reason
@@ -366,6 +377,12 @@ export function UnscheduledQueue() {
           </div>
         </div>
       ))}
+
+      {items.length > shown && (
+        <Button className="ghost" onClick={() => setShown(shown + 25)}>
+          Show 25 more ({items.length - shown} remaining)
+        </Button>
+      )}
 
       <ImpactDialog
         preview={pending ? previewImpact(data, pending.next) : null}

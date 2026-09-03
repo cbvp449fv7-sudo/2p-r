@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { AppData, Locale } from "@/lib/types";
 import { createSnapshot, listSnapshots, loadData, restoreSnapshot, saveData, type Snapshot } from "@/lib/storage";
 import { createDemoData } from "@/lib/demo";
@@ -29,6 +29,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState("light");
   const [toast, setToast] = useState("");
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     loadData().then(setState);
@@ -55,9 +56,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     void saveData(d);
   };
 
+  // Each message replaces the previous one and restarts the timer, so a second
+  // message arriving quickly is not cut short by the first one's timeout.
   const flash = (s: string) => {
     setToast(s);
-    setTimeout(() => setToast(""), 4000);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(""), 4000);
   };
 
   const refreshSnapshots = async () => {

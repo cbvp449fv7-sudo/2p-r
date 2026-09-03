@@ -29,6 +29,8 @@ export type QueueItem = {
   id: string;
   reason: UnscheduledReason;
   repairs: Repair[];
+  /** False until suggestions have actually been worked out for this item. */
+  repairsComputed: boolean;
   resolution: { status: "open" | "resolved" | "accepted"; note?: string };
 };
 
@@ -165,11 +167,19 @@ export function suggestRepairs(data: AppData, reason: UnscheduledReason): Repair
   return repairs.sort((a, b) => a.rank - b.rank).slice(0, 12);
 }
 
-export function buildQueue(data: AppData, reasons: UnscheduledReason[]): QueueItem[] {
+/**
+ * Build the queue.
+ *
+ * Suggestions are expensive to compute, and a department-sized import can queue
+ * hundreds of meetings, so only the first few are worked out up front. The rest
+ * are computed on demand when an administrator asks for them.
+ */
+export function buildQueue(data: AppData, reasons: UnscheduledReason[], eagerSuggestions = 5): QueueItem[] {
   return reasons.map((reason, index) => ({
     id: `UNSCHED-${index + 1}`,
     reason,
-    repairs: suggestRepairs(data, reason),
+    repairs: index < eagerSuggestions ? suggestRepairs(data, reason) : [],
+    repairsComputed: index < eagerSuggestions,
     resolution: { status: "open" as const },
   }));
 }

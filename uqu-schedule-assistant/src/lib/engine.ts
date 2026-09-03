@@ -157,13 +157,22 @@ export function generate(data: AppData, mode: "balanced" | "faculty" | "compact"
     }
   }
 
-  needs.sort((a, b) => candidateCount(a, data) - candidateCount(b, data) || a.course.code.localeCompare(b.course.code));
+  // Minimum-remaining-values ordering. The count is arithmetic and cached, so
+  // sorting a full department's worth of meetings does not materialise every
+  // candidate placement for every comparison.
+  const counts = new Map<Need, number>();
+  for (const need of needs) counts.set(need, candidateCount(need, data));
+  needs.sort((a, b) => (counts.get(a) ?? 0) - (counts.get(b) ?? 0) || a.course.code.localeCompare(b.course.code));
 
   let result: Assignment[] | null = null;
   const unscheduled: UnscheduledReason[] = [];
 
+  let timedOut = false;
   const search = (i: number, current: Assignment[]): boolean => {
-    if (Date.now() - started > data.settings.timeoutMs) return false;
+    if (Date.now() - started > data.settings.timeoutMs) {
+      timedOut = true;
+      return false;
+    }
     if (i === needs.length) {
       result = current;
       return true;
@@ -175,6 +184,10 @@ export function generate(data: AppData, mode: "balanced" | "faculty" | "compact"
     let thursdayWouldHelp = false;
 
     for (const option of options) {
+      if (Date.now() - started > data.settings.timeoutMs) {
+        timedOut = true;
+        break;
+      }
       const assignment = materialise(option, need, i);
       const problems = conflictsFor(assignment, current, data);
       if (problems.length === 0) {
@@ -208,7 +221,11 @@ export function generate(data: AppData, mode: "balanced" | "faculty" | "compact"
       ok: false,
       assignments: locked,
       score: 0,
-      warnings: ["No valid schedule found within the configured timeout. Every meeting the generator could not place is listed in the unscheduled queue."],
+      warnings: [
+        timedOut
+          ? `The search stopped after the configured ${data.settings.timeoutMs} ms timeout. Every meeting it could not place is listed in the unscheduled queue with the constraints that blocked it.`
+          : "No valid schedule satisfies every hard constraint. Every meeting the generator could not place is listed in the unscheduled queue.",
+      ],
       unscheduled,
       thursdayExplanations: [],
     };
@@ -271,8 +288,14 @@ type CandidateOption = {
   periods: number[];
 };
 
-function candidateCount(need: Need, data: AppData) {
-  return candidates(need, data, "balanced").length;
+/** How many placements a meeting could take, without building any of them. */
+function candidateCount(need: Need, data: AppData): number {
+  const length = need.periods || Math.max(1, Math.ceil(need.course.duration / 50));
+  const slots = Math.max(0, data.settings.periods.length - length + 1);
+  const rooms = isRemoteActivity(need.activity)
+    ? 1
+    : data.rooms.filter((r) => r.campus === need.section.campus && r.type === need.course.roomType && r.capacity !== null && r.capacity >= need.section.students).length;
+  return data.settings.days.length * slots * rooms;
 }
 
 function candidates(need: Need, data: AppData, mode: string): CandidateOption[] {
