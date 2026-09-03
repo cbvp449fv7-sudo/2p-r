@@ -16,3 +16,6 @@ uqu-schedule-assistant/next-env.d.ts
 uqu-schedule-assistant/coverage/
 private-data/
 *.local.xlsx
+
+# Static export output
+uqu-schedule-assistant/out/

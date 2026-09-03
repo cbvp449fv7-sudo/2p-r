@@ -161,9 +161,11 @@ export function QualityCenter() {
                 <td>{locale === "ar" ? issue.messageAr : issue.messageEn}</td>
                 <td>
                   {issue.link ? (
-                    <a href={issue.link}>
+                    // Link applies the configured base path, so deep links keep
+                    // working when the app is served from a subdirectory.
+                    <Link href={issue.link}>
                       {issue.entity.kind}: {issue.entity.id}
-                    </a>
+                    </Link>
                   ) : (
                     `${issue.entity.kind}: ${issue.entity.id}`
                   )}

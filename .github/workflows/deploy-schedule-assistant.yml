@@ -1,0 +1,77 @@
+name: Deploy UQU Schedule Assistant to GitHub Pages
+
+# The assistant is a fully client-side app, so it publishes as a static site.
+# Every record a user imports stays in their own browser; nothing is uploaded by
+# the app and nothing is stored on the host.
+
+on:
+  push:
+    branches: [claude/uqu-schedule-excel-update-tj4r8o]
+    paths:
+      - "uqu-schedule-assistant/**"
+      - ".github/workflows/deploy-schedule-assistant.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deployment finish rather than cancelling it mid-publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: uqu-schedule-assistant
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: uqu-schedule-assistant/package-lock.json
+
+      - run: npm ci
+
+      # Publish only what passes the same checks used in development.
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+
+      - uses: actions/configure-pages@v5
+        id: pages
+        with:
+          # Turn Pages on for the repository if it is not already, so the first
+          # run does not need the setting flipped by hand.
+          enablement: true
+
+      - name: Build the static site
+        # A project site is served from /<repo>/, so the app is built with that
+        # base path. Local development leaves it unset and serves from the root.
+        env:
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+        run: npm run build
+
+      # GitHub Pages runs Jekyll by default, which strips directories starting
+      # with an underscore, including Next's _next assets.
+      - run: touch out/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: uqu-schedule-assistant/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment
