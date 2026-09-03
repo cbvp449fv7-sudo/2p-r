@@ -44,12 +44,12 @@ jobs:
       - run: npm run lint
       - run: npm test
 
+      # One-time repository setup, which a workflow token is not permitted to do
+      # for itself: Settings -> Pages -> Build and deployment -> Source ->
+      # "GitHub Actions". Until that is set, this step fails with
+      # "Get Pages site failed ... Not Found".
       - uses: actions/configure-pages@v5
         id: pages
-        with:
-          # Turn Pages on for the repository if it is not already, so the first
-          # run does not need the setting flipped by hand.
-          enablement: true
 
       - name: Build the static site
         # A project site is served from /<repo>/, so the app is built with that
