@@ -19,6 +19,7 @@ import { nameKey } from "./uqu/normalize";
 export const QUALITY_CATEGORIES = [
   "invalid-period",
   "missing-faculty",
+  "missing-room",
   "missing-capacity",
   "duplicate-faculty-name",
   "unresolved-alias",
@@ -238,14 +239,19 @@ export function runQualityChecks(data: AppData): QualityReport {
   }
 
   for (const conflict of allConflicts(data)) {
+    // Thursday, remote rooms, and missing faculty are already reported above
+    // with their own wording and source cells.
     if (conflict.type === "thursday" || conflict.type === "remote-room" || conflict.type === "faculty-missing") continue;
+    // An in-person meeting with no room is its own category, so it can be
+    // filtered apart from genuine clashes between two bookings.
+    const category: QualityCategory = conflict.type === "room-missing" ? "missing-room" : "room-conflict";
     issues.push(
       issue(
         `conflict-${conflict.type}-${conflict.assignmentId}`,
-        "room-conflict",
+        category,
         "error",
         conflict.message,
-        conflict.message,
+        category === "missing-room" ? `${conflict.assignmentId}: لقاء حضوري بدون قاعة.` : conflict.message,
         { kind: "assignment", id: conflict.assignmentId },
         { link: `/editor?assignment=${conflict.assignmentId}` },
       ),

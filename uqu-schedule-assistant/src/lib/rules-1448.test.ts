@@ -263,6 +263,13 @@ describe("data quality center", () => {
     expect(report.issues.some((i) => i.category === "unmapped-college")).toBe(true);
   });
 
+  it("separates an in-person meeting with no room from a genuine room clash", () => {
+    const roomless = { ...data, assignments: [{ ...data.assignments[0], roomId: null }] };
+    const report = runQualityChecks(roomless);
+    expect(report.issues.some((i) => i.category === "missing-room" && i.severity === "error")).toBe(true);
+    expect(report.issues.some((i) => i.category === "room-conflict")).toBe(false);
+  });
+
   it("reports a blocked source row rather than hiding it", () => {
     const withBlocked = {
       ...data,

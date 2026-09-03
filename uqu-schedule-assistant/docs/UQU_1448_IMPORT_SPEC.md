@@ -366,7 +366,7 @@ assignment, which is named in the notes sheet.
 
 Runs before generation, approval, and export. Categories:
 
-`invalid-period`, `missing-faculty`, `missing-capacity`,
+`invalid-period`, `missing-faculty`, `missing-room`, `missing-capacity`,
 `duplicate-faculty-name`, `unresolved-alias`, `unmapped-college`,
 `preparatory-hours`, `remote-room`, `thursday-in-person`, `missing-pattern`,
 `room-conflict`, `faculty-load`, `single-sheet-record`, `unmapped-room-color`.
