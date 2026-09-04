@@ -6,3 +6,16 @@ node_modules/
 # Reinstall with: npx ui-ux-pro-max-cli init --ai claude
 .claude/skills/
 preview-test.html
+
+# UQU Schedule Assistant — never commit real institutional data
+uqu-schedule-assistant/node_modules/
+uqu-schedule-assistant/.next/
+uqu-schedule-assistant/out/
+uqu-schedule-assistant/*.tsbuildinfo
+uqu-schedule-assistant/next-env.d.ts
+uqu-schedule-assistant/coverage/
+private-data/
+*.local.xlsx
+
+# Static export output
+uqu-schedule-assistant/out/
